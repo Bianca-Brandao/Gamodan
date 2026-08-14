@@ -1,0 +1,68 @@
+.hero {
+  min-height: 100vh;
+  padding: 40px 32px;
+  transition: background 0.15s ease;
+}
+
+.carrossel-menu {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.carrossel-menu button {
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.3);
+  background: transparent;
+  color: #ddd;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.carrossel-menu button.ativo {
+  background: #6c5ce7;
+  border-color: #6c5ce7;
+  color: #fff;
+}
+
+.cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 12px;
+  color: #fff;
+}
+
+.card img {
+  width: 100%;
+  aspect-ratio: 3/4;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.estrelas span {
+  color: #444;
+  font-size: 1.1rem;
+}
+
+.estrelas span.cheia {
+  color: gold;
+}
+
+.datas {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+.vazio {
+  color: #aaa;
+  grid-column: 1 / -1;
+  text-align: center;
+}

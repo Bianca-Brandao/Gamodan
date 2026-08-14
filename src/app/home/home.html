@@ -1,0 +1,28 @@
+<section class="hero" [style.background]="'linear-gradient(135deg, hsl(' + (250 + scrollPercent()) + ', 70%, 15%), hsl(' + (280 + scrollPercent()) + ', 60%, 25%))'">
+
+  <div class="carrossel">
+    <div class="carrossel-menu">
+      <button (click)="selecionarAba('favoritos')" [class.ativo]="abaAtiva() === 'favoritos'">Favoritos</button>
+      <button (click)="selecionarAba('recentemente')" [class.ativo]="abaAtiva() === 'recentemente'">Recentemente</button>
+      <button (click)="selecionarAba('wishlist')" [class.ativo]="abaAtiva() === 'wishlist'">Wishlist</button>
+    </div>
+
+    <div class="cards-container">
+      @for (jogo of jogosFiltrados(); track jogo.id) {
+        <div class="card">
+          <img [src]="jogo.imagem" [alt]="jogo.nome" />
+          <h3>{{ jogo.nome }}</h3>
+          <div class="estrelas">
+            @for (preenchida of estrelasArray(jogo.estrelas); track $index) {
+              <span [class.cheia]="preenchida">★</span>
+            }
+          </div>
+          <p class="datas">{{ jogo.dataInicial }} — {{ jogo.dataFinal || 'em andamento' }}</p>
+        </div>
+      } @empty {
+        <p class="vazio">Nenhum jogo encontrado nessa categoria.</p>
+      }
+    </div>
+  </div>
+
+</section>
