@@ -1,11 +1,37 @@
 .hero {
+  --carousel-icon-size: 48px;
+  --carousel-card-width: 220px;
+  --carousel-gap: 16px;
   min-height: 100vh;
   padding: 40px 32px;
   transition: background 0.15s ease;
+  position: relative;
+}
+
+.carrossel {
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.acoes-topo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.btn-adicionar {
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .carrossel-menu {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -26,10 +52,23 @@
   color: #fff;
 }
 
-.cards-container {
+.carrossel-view {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
+  grid-template-columns: var(--carousel-icon-size) 1fr var(--carousel-icon-size);
+  gap: 18px;
+  align-items: center;
+}
+
+.carrossel-viewport {
+  overflow: hidden;
+}
+
+.carrossel-track {
+  display: flex;
+  gap: var(--carousel-gap);
+  padding-inline: calc(50% - (var(--carousel-card-width) / 2));
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
 }
 
 .card {
@@ -39,9 +78,44 @@
   color: #fff;
 }
 
+.card.mini {
+  flex: 0 0 var(--carousel-card-width);
+  opacity: 0.65;
+  transform: scale(0.92);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  cursor: pointer;
+}
+
+.card.mini.ativo {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.card.destaque,
+.card.mini.ativo {
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+}
+
+.seta {
+  width: var(--carousel-icon-size);
+  height: var(--carousel-icon-size);
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.35);
+  background: rgba(0,0,0,0.2);
+  color: #fff;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.seta:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .card img {
   width: 100%;
-  aspect-ratio: 3/4;
+  aspect-ratio: 4/5;
   object-fit: cover;
   border-radius: 8px;
   margin-bottom: 8px;
@@ -61,8 +135,127 @@
   color: #aaa;
 }
 
+.indicadores {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.ponto {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255,255,255,0.35);
+  cursor: pointer;
+}
+
+.ponto.ativo {
+  background: #f59e0b;
+  transform: scale(1.2);
+}
+
 .vazio {
   color: #aaa;
-  grid-column: 1 / -1;
   text-align: center;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(92vw, 640px);
+  border-radius: 14px;
+  padding: 22px;
+  background: #111827;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  z-index: 2;
+}
+
+.formulario {
+  display: grid;
+  gap: 12px;
+}
+
+.formulario label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.92rem;
+}
+
+.formulario input,
+.formulario select {
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  background: #0f172a;
+  color: #fff;
+  padding: 10px 11px;
+}
+
+.linha-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.acoes-modal {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.btn-secundario,
+.btn-principal {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.btn-secundario {
+  background: #334155;
+  color: #fff;
+}
+
+.btn-principal {
+  background: #f97316;
+  color: #fff;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .hero {
+    --carousel-card-width: 180px;
+    --carousel-icon-size: 42px;
+    padding: 24px 16px;
+  }
+
+  .carrossel-view {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .seta {
+    justify-self: center;
+  }
+
+  .linha-form {
+    grid-template-columns: 1fr;
+  }
 }
