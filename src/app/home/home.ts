@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Game } from '../models/game.model';
 import { GameService } from '../services/game';
 
 type Aba = 'favoritos' | 'recentemente';
+type SlotCarrossel = 'single' | 'center' | 'prev' | 'next';
 
 @Component({
   selector: 'app-home',
@@ -18,9 +20,12 @@ export class Home implements OnDestroy {
   private readonly gameService = inject(GameService);
   private readonly formBuilder = inject(FormBuilder);
   private autoplayId: ReturnType<typeof setInterval> | null = null;
+  readonly estrelasDisponiveis = [1, 2, 3, 4, 5];
 
   abaAtiva = signal<Aba>('recentemente');
   modalAberto = signal(false);
+  detalheAberto = signal(false);
+  jogoSelecionado = signal<Game | null>(null);
   indiceAtual = signal(0);
 
   // % de scroll da página, de 0 a 100 - usado pra animar o gradiente
@@ -38,16 +43,55 @@ export class Home implements OnDestroy {
   });
 
   jogosCarrossel = computed(() => this.jogosFiltrados().slice(0, 5));
+  carrosselVisivel = computed(() => {
+    const jogos = this.jogosCarrossel();
+    const total = jogos.length;
+
+    if (total === 0) {
+      return [];
+    }
+
+    if (total === 1) {
+      return [{ jogo: jogos[0], indiceOriginal: 0, slot: 'single' as SlotCarrossel }];
+    }
+
+    if (total === 2) {
+      const centro = this.indiceAtual() % 2;
+      const proximo = (centro + 1) % 2;
+
+      return [
+        { jogo: jogos[centro], indiceOriginal: centro, slot: 'center' as SlotCarrossel },
+        { jogo: jogos[proximo], indiceOriginal: proximo, slot: 'next' as SlotCarrossel },
+      ];
+    }
+
+    const centro = this.indiceAtual();
+    const anterior = (centro - 1 + total) % total;
+    const proximo = (centro + 1) % total;
+
+    return [
+      { jogo: jogos[anterior], indiceOriginal: anterior, slot: 'prev' as SlotCarrossel },
+      { jogo: jogos[centro], indiceOriginal: centro, slot: 'center' as SlotCarrossel },
+      { jogo: jogos[proximo], indiceOriginal: proximo, slot: 'next' as SlotCarrossel },
+    ];
+  });
 
   readonly temMultiplosJogos = computed(() => this.jogosCarrossel().length > 1);
+  readonly rotuloFiltro = computed(() =>
+    this.abaAtiva() === 'recentemente' ? 'Adicionados recentemente' : 'Favoritos'
+  );
+  readonly proximoFiltro = computed(() =>
+    this.abaAtiva() === 'recentemente' ? 'Favoritos' : 'Adicionados recentemente'
+  );
 
   readonly formJogo = this.formBuilder.nonNullable.group({
     nome: ['', [Validators.required, Validators.maxLength(50)]],
     imagem: ['', [Validators.required]],
-    estrelas: [3, [Validators.required, Validators.min(1), Validators.max(3)]],
+    estrelas: [5, [Validators.required, Validators.min(0.5), Validators.max(5)]],
     dataInicial: ['', [Validators.required]],
     dataFinal: [''],
     favorito: [false],
+    wishlist: [false],
     status: ['pendente' as const],
   });
 
@@ -76,6 +120,10 @@ export class Home implements OnDestroy {
     this.indiceAtual.set(0);
   }
 
+  alternarAba() {
+    this.selecionarAba(this.abaAtiva() === 'recentemente' ? 'favoritos' : 'recentemente');
+  }
+
   onScroll() {
     const alturaTotal = document.body.scrollHeight - window.innerHeight;
     const percentual = alturaTotal > 0 ? (window.scrollY / alturaTotal) * 100 : 0;
@@ -83,11 +131,24 @@ export class Home implements OnDestroy {
   }
 
   abrirModal() {
+    this.jogoSelecionado.set(null);
+    this.detalheAberto.set(false);
     this.modalAberto.set(true);
   }
 
   fecharModal() {
     this.modalAberto.set(false);
+  }
+
+  abrirDetalhes(jogo: Game) {
+    this.modalAberto.set(false);
+    this.jogoSelecionado.set(jogo);
+    this.detalheAberto.set(true);
+  }
+
+  fecharDetalhes() {
+    this.detalheAberto.set(false);
+    this.jogoSelecionado.set(null);
   }
 
   avancar() {
@@ -110,8 +171,46 @@ export class Home implements OnDestroy {
     this.indiceAtual.set(indice);
   }
 
-  trackTransform() {
-    return `translateX(calc(-${this.indiceAtual()} * (var(--carousel-card-width) + var(--carousel-gap))))`;
+  estadoEstrela(valor: number, estrela: number) {
+    const diferenca = valor - (estrela - 1);
+
+    if (diferenca >= 1) {
+      return 'cheia';
+    }
+
+    if (diferenca >= 0.5) {
+      return 'meia';
+    }
+
+    return 'vazia';
+  }
+
+  definirEstrelas(estrela: number, event: MouseEvent) {
+    const alvo = event.currentTarget as HTMLElement | null;
+    if (!alvo) {
+      return;
+    }
+
+    const retangulo = alvo.getBoundingClientRect();
+    const clicouNaMetadeEsquerda = event.detail > 0 && event.clientX - retangulo.left <= retangulo.width / 2;
+    const valor = clicouNaMetadeEsquerda ? estrela - 0.5 : estrela;
+    const valorNormalizado = Math.min(5, Math.max(0.5, valor));
+
+    this.formJogo.controls.estrelas.setValue(valorNormalizado);
+  }
+
+  legendaEstrela(valor: number) {
+    const cheio = Math.floor(valor);
+    const meio = valor % 1 >= 0.5 ? 1 : 0;
+    return `${cheio} estrelas${meio ? ' e meio' : ''}`;
+  }
+
+  formatarDataBrasil(data: string) {
+    return new Intl.DateTimeFormat('pt-BR').format(new Date(`${data}T00:00:00`));
+  }
+
+  nomeEstrela(valor: number) {
+    return `${valor} estrela${valor > 1 ? 's' : ''}`;
   }
 
   salvarJogo() {
@@ -129,6 +228,7 @@ export class Home implements OnDestroy {
       dataInicial: valor.dataInicial,
       dataFinal: valor.dataFinal || undefined,
       favorito: valor.favorito,
+      wishlist: valor.wishlist,
       status: valor.status,
     });
 
@@ -139,6 +239,7 @@ export class Home implements OnDestroy {
       dataInicial: '',
       dataFinal: '',
       favorito: false,
+      wishlist: false,
       status: 'pendente',
     });
 
@@ -170,8 +271,4 @@ export class Home implements OnDestroy {
     }
   }
 
-  // gera um array [1,2,3] pra desenhar as estrelas no html
-  estrelasArray(qtd: number) {
-    return Array(3).fill(0).map((_, i) => i < qtd);
-  }
 }

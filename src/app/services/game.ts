@@ -4,10 +4,11 @@ import { Game } from '../models/game.model';
 @Injectable({ providedIn: 'root' })
 export class GameService {
   private readonly _games = signal<Game[]>([]);
+  private nextId = 1;
   readonly games = this._games.asReadonly();
 
   addGame(game: Omit<Game, 'id'>) {
-    const novo: Game = { ...game, id: Date.now() };
+    const novo: Game = { ...game, id: this.nextId++ };
     this._games.update(lista => [...lista, novo]);
   }
 
