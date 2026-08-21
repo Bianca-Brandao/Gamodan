@@ -1,5 +1,20 @@
 <section class="hero" [style.background]="'linear-gradient(135deg, hsl(' + (250 + scrollPercent()) + ', 70%, 15%), hsl(' + (280 + scrollPercent()) + ', 60%, 25%))'">
 
+  @if (!authService.autenticado()) {
+    <div class="auth-chamada">
+      <div class="auth-chamada-texto">
+        <p class="auth-chamada-selo">Conta Gamodan</p>
+        <h2>Entre ou crie sua conta para salvar sua lista em um espaço só seu.</h2>
+        <p>Os botões abaixo abrem um pop-up de acesso no início da página, no mesmo padrão do cadastro de jogos.</p>
+      </div>
+
+      <div class="auth-chamada-acoes">
+        <button type="button" class="btn-auth destaque" (click)="abrirAutenticacao('entrar')">Entrar</button>
+        <button type="button" class="btn-auth" (click)="abrirAutenticacao('criar')">Criar conta</button>
+      </div>
+    </div>
+  }
+
   <div class="carrossel">
     <div class="acoes-topo">
       <button class="btn-adicionar" type="button" (click)="abrirModal()">Adicionar jogos a sua lista</button>
@@ -152,6 +167,62 @@
       <div class="acoes-modal">
         <button type="button" class="btn-principal" (click)="fecharDetalhes()">Fechar</button>
       </div>
+    </section>
+  }
+
+  @if (authService.modalAberto()) {
+    <div class="modal-backdrop" (click)="fecharAutenticacao()" aria-hidden="true"></div>
+    <section class="modal modal-auth" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <button type="button" class="auth-fechar" (click)="fecharAutenticacao()" aria-label="Fechar janela de acesso">×</button>
+
+      <h2 id="auth-title">{{ authService.modo() === 'entrar' ? 'Entrar na sua conta' : 'Criar uma conta' }}</h2>
+      <p class="auth-texto-modal">Use um acesso diferente para cada conta. Seus dados ficam separados por login.</p>
+
+      <div class="auth-tabs" role="tablist" aria-label="Escolha o fluxo de acesso">
+        <button type="button" class="auth-tab" [class.ativo]="authService.modo() === 'entrar'" (click)="trocarAutenticacao('entrar')">Entrar</button>
+        <button type="button" class="auth-tab" [class.ativo]="authService.modo() === 'criar'" (click)="trocarAutenticacao('criar')">Criar conta</button>
+      </div>
+
+      @if (authService.modo() === 'entrar') {
+        <form [formGroup]="loginForm" (ngSubmit)="entrar()" class="formulario auth-form">
+          <label>
+            E-mail
+            <input formControlName="email" type="email" placeholder="voce@exemplo.com" />
+          </label>
+
+          <label>
+            Senha
+            <input formControlName="senha" type="password" placeholder="••••••••" />
+          </label>
+
+          <div class="acoes-modal">
+            <button type="button" class="btn-secundario" (click)="fecharAutenticacao()">Cancelar</button>
+            <button type="submit" class="btn-principal">Entrar</button>
+          </div>
+        </form>
+      } @else {
+        <form [formGroup]="cadastroForm" (ngSubmit)="criarConta()" class="formulario auth-form">
+          <label>
+            Nome
+            <input formControlName="nome" type="text" placeholder="Seu nome" />
+          </label>
+
+          <label>
+            E-mail
+            <input formControlName="email" type="email" placeholder="voce@exemplo.com" />
+          </label>
+
+          <label>
+            Senha
+            <input formControlName="senha" type="password" placeholder="Crie uma senha" />
+          </label>
+
+          <div class="acoes-modal">
+            <button type="button" class="btn-secundario" (click)="fecharAutenticacao()">Cancelar</button>
+            <button type="submit" class="btn-principal">Criar conta</button>
+          </div>
+        </form>
+      }
     </section>
   }
 

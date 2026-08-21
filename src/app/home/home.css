@@ -8,6 +8,133 @@
   position: relative;
 }
 
+.auth-chamada {
+  width: min(100%, 920px);
+  margin: 0 auto 24px;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(2, 6, 23, 0.58);
+  backdrop-filter: blur(10px);
+  color: #fff;
+}
+
+.auth-chamada-texto {
+  display: grid;
+  gap: 8px;
+}
+
+.auth-chamada-selo {
+  margin: 0;
+  color: #fbbf24;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.auth-chamada-texto h2 {
+  margin: 0;
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  line-height: 1.1;
+}
+
+.auth-chamada-texto p {
+  margin: 0;
+  max-width: 58ch;
+  color: #cbd5e1;
+}
+
+.auth-chamada-acoes {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.btn-auth {
+  min-width: 140px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-auth.destaque {
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  border-color: transparent;
+}
+
+.modal-auth {
+  width: min(92vw, 560px);
+}
+
+.auth-fechar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.auth-texto-modal {
+  margin: 10px 0 18px;
+  color: #cbd5e1;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.auth-tab {
+  flex: 1 1 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.auth-tab.ativo {
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  border-color: transparent;
+}
+
+.auth-form {
+  gap: 14px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.95rem;
+}
+
+.auth-form input {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(15, 23, 42, 0.9);
+  color: #fff;
+  padding: 12px 14px;
+}
+
 .carrossel {
   max-width: 920px;
   margin: 0 auto;
@@ -389,6 +516,19 @@
     padding: 24px 16px;
   }
 
+  .auth-chamada {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .auth-chamada-acoes {
+    justify-content: stretch;
+  }
+
+  .btn-auth {
+    width: 100%;
+  }
+
   .carrossel-view {
     grid-template-columns: 1fr;
     gap: 10px;
@@ -415,5 +555,9 @@
 
   .detalhes-grid {
     grid-template-columns: 1fr;
+  }
+
+  .auth-tabs {
+    flex-direction: column;
   }
 }

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, inject
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Game } from '../models/game.model';
 import { GameService } from '../services/game';
+import { AuthService, type AuthMode } from '../services/auth';
 
 type Aba = 'favoritos' | 'recentemente';
 type SlotCarrossel = 'single' | 'center' | 'prev' | 'next';
@@ -19,6 +20,7 @@ type SlotCarrossel = 'single' | 'center' | 'prev' | 'next';
 export class Home implements OnDestroy {
   private readonly gameService = inject(GameService);
   private readonly formBuilder = inject(FormBuilder);
+  protected readonly authService = inject(AuthService);
   private autoplayId: ReturnType<typeof setInterval> | null = null;
   readonly estrelasDisponiveis = [1, 2, 3, 4, 5];
 
@@ -95,6 +97,17 @@ export class Home implements OnDestroy {
     status: ['pendente' as const],
   });
 
+  readonly loginForm = this.formBuilder.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+    senha: ['', [Validators.required, Validators.minLength(6)]],
+  });
+
+  readonly cadastroForm = this.formBuilder.nonNullable.group({
+    nome: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(40)]],
+    email: ['', [Validators.required, Validators.email]],
+    senha: ['', [Validators.required, Validators.minLength(6)]],
+  });
+
   constructor() {
     effect(
       () => {
@@ -121,7 +134,50 @@ export class Home implements OnDestroy {
   }
 
   alternarAba() {
+    if (!this.authService.autenticado()) {
+      this.authService.abrirModal('entrar');
+      return;
+    }
+
     this.selecionarAba(this.abaAtiva() === 'recentemente' ? 'favoritos' : 'recentemente');
+  }
+
+  abrirAutenticacao(modo: 'entrar' | 'criar') {
+    this.authService.abrirModal(modo);
+  }
+
+  fecharAutenticacao() {
+    this.authService.fecharModal();
+  }
+
+  trocarAutenticacao(modo: AuthMode) {
+    this.authService.abrirModal(modo);
+  }
+
+  entrar() {
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
+
+    const dados = this.loginForm.getRawValue();
+    this.authService.login({
+      nome: dados.email.split('@')[0],
+      email: dados.email,
+      senha: dados.senha,
+    });
+    this.loginForm.reset({ email: '', senha: '' });
+  }
+
+  criarConta() {
+    if (this.cadastroForm.invalid) {
+      this.cadastroForm.markAllAsTouched();
+      return;
+    }
+
+    const dados = this.cadastroForm.getRawValue();
+    this.authService.register(dados);
+    this.cadastroForm.reset({ nome: '', email: '', senha: '' });
   }
 
   onScroll() {
@@ -131,6 +187,11 @@ export class Home implements OnDestroy {
   }
 
   abrirModal() {
+    if (!this.authService.autenticado()) {
+      this.authService.abrirModal('entrar');
+      return;
+    }
+
     this.jogoSelecionado.set(null);
     this.detalheAberto.set(false);
     this.modalAberto.set(true);
@@ -141,6 +202,11 @@ export class Home implements OnDestroy {
   }
 
   abrirDetalhes(jogo: Game) {
+    if (!this.authService.autenticado()) {
+      this.authService.abrirModal('entrar');
+      return;
+    }
+
     this.modalAberto.set(false);
     this.jogoSelecionado.set(jogo);
     this.detalheAberto.set(true);
@@ -152,6 +218,11 @@ export class Home implements OnDestroy {
   }
 
   avancar() {
+    if (!this.authService.autenticado()) {
+      this.authService.abrirModal('entrar');
+      return;
+    }
+
     const total = this.jogosCarrossel().length;
     if (total <= 1) {
       return;
@@ -160,6 +231,11 @@ export class Home implements OnDestroy {
   }
 
   voltar() {
+    if (!this.authService.autenticado()) {
+      this.authService.abrirModal('entrar');
+      return;
+    }
+
     const total = this.jogosCarrossel().length;
     if (total <= 1) {
       return;
@@ -168,6 +244,11 @@ export class Home implements OnDestroy {
   }
 
   irPara(indice: number) {
+    if (!this.authService.autenticado()) {
+      this.authService.abrirModal('entrar');
+      return;
+    }
+
     this.indiceAtual.set(indice);
   }
 
@@ -214,6 +295,11 @@ export class Home implements OnDestroy {
   }
 
   salvarJogo() {
+    if (!this.authService.autenticado()) {
+      this.authService.abrirModal('entrar');
+      return;
+    }
+
     if (this.formJogo.invalid) {
       this.formJogo.markAllAsTouched();
       return;
