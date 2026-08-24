@@ -22,3 +22,5 @@ export class Header {
     this.router.navigateByUrl('/');
   }
 }
+
+}
