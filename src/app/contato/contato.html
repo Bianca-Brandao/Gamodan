@@ -1,140 +1,39 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Contato da Ilha</title>
-  
-  <!-- Biblioteca Font Awesome para os ícones -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-</head>
-<body>
+<section class="contato-page">
+  <header class="cabecalho">
+    <p class="selo">Contato da Ilha</p>
+    <h2>Encontre a equipe e fale com cada integrante pelos links abaixo.</h2>
+    <p class="descricao">Pesquise pelo nome para filtrar a lista em tempo real.</p>
+  </header>
 
-  <!-- Barra de Pesquisa -->
-  <form onsubmit="event.preventDefault();">
-    <input type="text" id="inputBusca" placeholder="Pesquisar..." oninput="filtrarNomes()">
-    <button type="submit">
-      <i class="fa-solid fa-magnifying-glass"></i>
-    </button>
+  <form class="busca" onsubmit="return false;">
+    <label class="sr-only" for="inputBusca">Pesquisar integrante</label>
+    <input
+      id="inputBusca"
+      type="text"
+      [value]="busca()"
+      (input)="atualizarBusca($any($event.target).value)"
+      placeholder="Pesquisar..."
+      autocomplete="off">
+    <button type="button" aria-label="Pesquisar">Buscar</button>
   </form>
 
-  <br>
-
-  <footer>
+  <footer class="lista-wrapper">
     <hr>
-    <h3>Contato da Ilha</h3>
-
-    <!-- Onde os nomes serão inseridos pelo JS -->
-    <div id="lista-membros"></div>
-  </footer>
-
-  <script>
-    // Lista de dados (Array de Objetos)
-    const membros = [
-      {
-        nome: "Bianca Brandão",
-        email: "bianca.brandao.bbs@gmail.com",
-        linkedin: "https://www.linkedin.com/in/bianca-brand%C3%A3o-6810393b4/",
-        github: "https://github.com/Bianca-Brandao"
-      },
-      {
-        nome: "Maria Eduarda",
-        email: "mariaeduarda19@gmail.com",
-        linkedin: "https://www.linkedin.com/in/maria-eduarda-gon%C3%A7alo-3aa84837b/",
-        github: "https://github.com/"
-      },
-      {
-        nome: "Maryanne",
-        email: "maryannemqs@gmail.com",
-        linkedin: "https://linkedin.com/in/mary-marques",
-        github: "https://github.com/itsmaryanne"
-      },
-      {
-        nome: "Estela Nunes",
-        email: "estelanunes889@gmail.com",
-        linkedin: "https://www.linkedin.com/in/estelabnunes1506/?skipRedirect=true",
-        github: "https://github.com/estelanunes889"
-      },
-      {
-        nome: "Kethyn",
-        email: "kethyncris123@gmail.com",
-        linkedin: "https://linkedin.com/in/kethyn-cris-653033424",
-        github: "https://github.com/Kethynoliveira1-dev"
-      },
-      {
-        nome: "Marcelli",
-        email: "martinsmarcelli06@gmail.com",
-        linkedin: "https://linkedin.com/in/marcelli-ferreira-nestor-martins-a60b26411",
-        github: "https://github.com/martinsmarcelli06-ctrl"
-      },
-      {
-        nome: "Ana Luiza",
-        email: "analuiza.rochacoelho09@gmail.com",
-        linkedin: "https://www.linkedin.com/in/ana-luiza-d2312",
-        github: "https://github.com/analuiza2312"
-      },
-      {
-        nome: "Livia",
-        email: "liviamendonca123456@gmail.com",
-        linkedin: "https://www.linkedin.com/in/livia-mendonca-779604368",
-        github: "https://github.com/Livia126"
-      },
-    ];
-
-    // Função para renderizar os cards dos membros na tela
-    function renderizarMembros(lista) {
-      const contêiner = document.getElementById('lista-membros');
-      contêiner.innerHTML = ''; // Limpa o conteúdo antes de desenhar
-
-      // Exibe a mensagem caso a busca retorne uma lista vazia
-      if (lista.length === 0) {
-        contêiner.innerHTML = '<p>Nenhuma integrante encontrada.</p>';
-        return;
+    <div id="lista-membros" class="lista-membros">
+      @if (membrosFiltrados().length > 0) {
+        @for (membro of membrosFiltrados(); track membro.email) {
+          <article class="membro">
+            <p><strong>{{ membro.nome }}</strong></p>
+            <a [href]="emailLink(membro.email)">E-mail</a>
+            <span class="separador">|</span>
+            <a [href]="membro.linkedin" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+            <span class="separador">|</span>
+            <a [href]="membro.github" target="_blank" rel="noopener noreferrer">GitHub</a>
+          </article>
+        }
+      } @else {
+        <p class="vazio">Nenhuma integrante encontrada.</p>
       }
-
-      lista.forEach(membro => {
-        const linkEmail = membro.email ? `https://mail.google.com/mail/?view=cm&fs=1&to=${membro.email}` : '#';
-        
-        const htmlMembro = `
-          <div class="membro">
-            <p><strong>${membro.nome}</strong></p>
-            <a href="${linkEmail}" target="_blank"><i class="fa-regular fa-envelope"></i> E-mail</a> |
-            <a href="${membro.linkedin}" target="_blank"><i class="fa-brands fa-linkedin"></i> LinkedIn</a> | 
-            <a href="${membro.github}" target="_blank"><i class="fa-brands fa-github"></i> GitHub</a>
-            <br><br>
-          </div>
-        `;
-        contêiner.innerHTML += htmlMembro;
-      });
-    }
-
-    // Função para filtrar a lista com base no que foi digitado
-    function filtrarNomes() {
-      const input = document.getElementById('inputBusca').value;
-      
-      const termoBusca = input
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim();
-
-      // Filtra o array original mantendo apenas quem combina com a pesquisa
-      const membrosFiltrados = membros.filter(membro => {
-        const nomeTratado = membro.nome
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '')
-          .toLowerCase();
-
-        return nomeTratado.includes(termoBusca);
-      });
-
-      // Renderiza novamente apenas os membros filtrados
-      renderizarMembros(membrosFiltrados);
-    }
-
-    // Carrega todos os membros assim que a página abre
-    renderizarMembros(membros);
-  </script>
-
-</body>
-</html>
+    </div>
+  </footer>
+</section>

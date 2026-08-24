@@ -9,9 +9,9 @@
   min-height: 100vh;
   padding: 40px 32px;
   background:
-    radial-gradient(circle at top left, rgba(245, 158, 11, 0.22), transparent 28%),
-    radial-gradient(circle at right center, rgba(59, 130, 246, 0.16), transparent 22%),
-    linear-gradient(180deg, #0f172a 0%, #111827 100%);
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.16), transparent 28%),
+    radial-gradient(circle at right center, rgba(239, 68, 68, 0.12), transparent 22%),
+    linear-gradient(135deg, #0f172a 0%, #111827 100%);
 }
 
 .cabecalho {
@@ -30,8 +30,8 @@
 
 .cabecalho h2 {
   margin: 0;
-  font-size: clamp(1.8rem, 4vw, 3rem);
-  line-height: 1.05;
+  font-size: clamp(1.3rem, 3vw, 2rem);
+  line-height: 1.1;
 }
 
 .descricao {
@@ -52,7 +52,7 @@
   flex: 1;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(255, 255, 255, 0.06);
   color: #fff;
   padding: 12px 18px;
   font-size: 0.95rem;
@@ -60,7 +60,7 @@
 
 .busca input:focus {
   outline: none;
-  border-color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.85);
 }
 
 .busca input::placeholder {
@@ -68,15 +68,17 @@
 }
 
 .busca button {
-  width: 46px;
-  height: 46px;
+  width: 65px;
+  height: 55px;
   flex: 0 0 auto;
   border: 0;
-  border-radius: 50%;
+  border-radius: 999px;
   background: linear-gradient(135deg, #f59e0b, #ef4444);
   color: #fff;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 10px 22px rgba(239, 68, 68, 0.2);
 }
 
 .lista-wrapper {
@@ -101,7 +103,7 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 14px;
   padding: 16px 18px;
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
 }
 
 .membro p {
@@ -132,7 +134,7 @@
 .vazio {
   grid-column: 1 / -1;
   text-align: center;
-  color: #94a3b8;
+  color: #cbd5e1;
 }
 
 .sr-only {
@@ -148,7 +150,7 @@
 }
 
 @media (max-width: 720px) {
-.contato-page {
+  .contato-page {
     padding: 24px 16px;
   }
 
