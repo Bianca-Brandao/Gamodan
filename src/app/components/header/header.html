@@ -2,9 +2,14 @@
   <div class="logo">Gamodan</div>
   <nav class="menu">
     <a routerLink="/" routerLinkActive="ativo" [routerLinkActiveOptions]="{exact: true}">Início</a>
-    <a routerLink="/lista" routerLinkActive="ativo">Lista</a>
-    <a routerLink="/favoritos" routerLinkActive="ativo">Favoritos</a>
-    <a routerLink="/status" routerLinkActive="ativo">Status</a>
+    @if (authService.autenticado()) {
+      <a routerLink="/lista" routerLinkActive="ativo">Lista</a>
+      <a routerLink="/perfil" routerLinkActive="ativo">Perfil</a>
+    }
     <a routerLink="/contato" routerLinkActive="ativo">Contato</a>
+    @if (authService.autenticado()) {
+      <button type="button" class="menu-acao" (click)="sair()">Sair</button>
+    }
   </nav>
 </header>
+
