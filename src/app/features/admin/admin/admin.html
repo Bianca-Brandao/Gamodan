@@ -1,0 +1,17 @@
+<div class="admin-container">
+  <h2>Login Administrador</h2>
+
+  <form [formGroup]="form" (ngSubmit)="entrar()">
+    <label for="usuario">Usuário</label>
+    <input id="usuario" type="text" formControlName="usuario">
+
+    <label for="senha">Senha</label>
+    <input id="senha" type="password" formControlName="senha">
+
+    <button type="submit" [disabled]="form.invalid">Entrar</button>
+  </form>
+
+  @if (erro) {
+    <p class="erro">Usuário ou senha incorretos</p>
+  }
+</div>
