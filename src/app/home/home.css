@@ -219,7 +219,7 @@
   gap: 10px;
 }
 
-.checkbox {
+.formulario label.checkbox {
   display: flex;
   align-items: center;
   gap: 8px;

@@ -4,7 +4,14 @@
 		@for (jogo of jogos(); track jogo.id) {
 			<article class="jogo-card">
 				<img [src]="jogo.imagem" [alt]="jogo.nome" referrerpolicy="no-referrer" />
-				<div><h2>{{ jogo.nome }}</h2><p class="estrelas">{{ '★'.repeat(jogo.estrelas) }}<span>{{ '★'.repeat(5 - jogo.estrelas) }}</span></p><p>{{ jogo.dataInicial }} - {{ jogo.dataFinal || 'Em andamento' }}</p><button type="button" (click)="alternarFavorito(jogo.id)">Remover dos favoritos</button></div>
+				<div>
+					<div class="jogo-cabecalho">
+						<h2>{{ jogo.nome }}</h2>
+						<button type="button" (click)="alternarFavorito(jogo.id)">Remover dos favoritos</button>
+					</div>
+					<p class="estrelas">{{ '★'.repeat(jogo.estrelas) }}<span>{{ '★'.repeat(5 - jogo.estrelas) }}</span></p>
+					<p>{{ jogo.dataInicial }} - {{ jogo.dataFinal || 'Em andamento' }}</p>
+				</div>
 			</article>
 		} @empty { <p class="vazio">Você ainda não tem jogos favoritos.</p> }
 	</div>
