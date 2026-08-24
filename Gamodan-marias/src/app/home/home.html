@@ -1,0 +1,569 @@
+<section
+  class="hero"
+  [style.background]="
+    'linear-gradient(135deg, hsl(' +
+    (250 + scrollPercent()) +
+    ', 70%, 15%), hsl(' +
+    (280 + scrollPercent()) +
+    ', 60%, 25%))'
+  "
+>
+  <div class="carrossel">
+
+    <!-- BOTÃO ADICIONAR -->
+    <div class="acoes-topo">
+      <button
+        class="btn-adicionar"
+        type="button"
+        (click)="abrirModal()"
+      >
+        Adicionar jogos a sua lista
+      </button>
+    </div>
+
+    <!-- FILTRO -->
+    <div class="carrossel-menu">
+      <button
+        class="filtro-toggle"
+        type="button"
+        (click)="alternarAba()"
+        [attr.aria-pressed]="abaAtiva() === 'favoritos'"
+      >
+        <svg
+          class="filtro-icone"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M4 5h16l-6 7v5l-4 2v-7L4 5z"></path>
+        </svg>
+
+        <strong>{{ rotuloFiltro() }}</strong>
+      </button>
+    </div>
+
+    <!-- CARROSSEL -->
+    @if (jogosCarrossel().length > 0) {
+
+      <div
+        class="carrossel-view"
+        aria-label="Carrossel de jogos"
+      >
+
+        <!-- SETA ESQUERDA -->
+        <button
+          class="seta"
+          type="button"
+          (click)="voltar()"
+          [disabled]="!temMultiplosJogos()"
+          aria-label="Voltar jogo"
+        >
+          ❮
+        </button>
+
+        <div class="carrossel-viewport">
+
+          <div
+            class="carrossel-track"
+            [class.um-item]="carrosselVisivel().length === 1"
+            [class.dois-itens]="carrosselVisivel().length === 2"
+          >
+
+            @for (item of carrosselVisivel(); track item.jogo.id) {
+
+              <article
+                class="card mini"
+                [class.centralizado]="
+                  item.slot === 'center' ||
+                  item.slot === 'single'
+                "
+                [class.meio-esquerda]="item.slot === 'prev'"
+                [class.meio-direita]="item.slot === 'next'"
+                (click)="abrirDetalhes(item.jogo)"
+              >
+
+                <!-- CAPA -->
+                <img
+                  [src]="item.jogo.imagem"
+                  [alt]="item.jogo.nome"
+                />
+
+                <!-- NOME -->
+                <h3>
+                  {{ item.jogo.nome }}
+                </h3>
+
+                <!-- STATUS -->
+                <span
+                  class="status-card"
+                  [class.status-pendente]="
+                    item.jogo.status === 'pendente'
+                  "
+                  [class.status-jogando]="
+                    item.jogo.status === 'jogando'
+                  "
+                  [class.status-finalizado]="
+                    item.jogo.status === 'finalizado'
+                  "
+                >
+                  {{ item.jogo.status }}
+                </span>
+
+                <!-- ESTRELAS -->
+                <div
+                  class="estrelas"
+                  aria-label="Nota do jogo"
+                >
+                  @for (
+                    estrela of estrelasDisponiveis;
+                    track estrela
+                  ) {
+
+                    <span
+                      class="estrela"
+                      [class.cheia]="
+                        estadoEstrela(
+                          item.jogo.estrelas,
+                          estrela
+                        ) === 'cheia'
+                      "
+                      [class.meia]="
+                        estadoEstrela(
+                          item.jogo.estrelas,
+                          estrela
+                        ) === 'meia'
+                      "
+                    >
+                      ★
+                    </span>
+
+                  }
+                </div>
+
+                <!-- DATAS -->
+                <p class="datas">
+                  {{ formatarDataBrasil(item.jogo.dataInicial) }}
+                  —
+                  {{
+                    item.jogo.dataFinal
+                      ? formatarDataBrasil(item.jogo.dataFinal)
+                      : 'em andamento'
+                  }}
+                </p>
+
+              </article>
+
+            }
+
+          </div>
+
+        </div>
+
+        <!-- SETA DIREITA -->
+        <button
+          class="seta"
+          type="button"
+          (click)="avancar()"
+          [disabled]="!temMultiplosJogos()"
+          aria-label="Próximo jogo"
+        >
+          ❯
+        </button>
+
+      </div>
+
+      <!-- INDICADORES -->
+      <div
+        class="indicadores"
+        aria-hidden="true"
+      >
+
+        @for (
+          item of jogosCarrossel();
+          track item.id;
+          let i = $index
+        ) {
+
+          <button
+            type="button"
+            class="ponto"
+            [class.ativo]="i === indiceAtual()"
+            (click)="irPara(i)"
+            [attr.aria-label]="'Ir para jogo ' + (i + 1)"
+          >
+          </button>
+
+        }
+
+      </div>
+
+    } @else {
+
+      <p class="vazio">
+        Nenhum jogo encontrado nessa categoria.
+      </p>
+
+    }
+
+  </div>
+
+
+  <!-- ================================================= -->
+  <!-- MODAL ADICIONAR JOGO -->
+  <!-- ================================================= -->
+
+  @if (modalAberto()) {
+
+    <div
+      class="modal-backdrop"
+      (click)="fecharModal()"
+      aria-hidden="true"
+    ></div>
+
+    <section
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-modal"
+    >
+
+      <h2 id="titulo-modal">
+        Adicionar jogo
+      </h2>
+
+      <form
+        [formGroup]="formJogo"
+        (ngSubmit)="salvarJogo()"
+        class="formulario"
+      >
+
+        <!-- NOME -->
+        <label>
+
+          Nome do jogo
+
+          <input
+            formControlName="nome"
+            type="text"
+            placeholder="Ex.: Hollow Knight"
+          />
+
+        </label>
+
+
+        <!-- STATUS + NOTA -->
+        <div class="linha-form linha-status-nota">
+
+          <label class="campo-cinza">
+
+            Status
+
+            <select formControlName="status">
+
+              <option value="pendente">
+                Pendente
+              </option>
+
+              <option value="jogando">
+                Jogando
+              </option>
+
+              <option value="finalizado">
+                Finalizado
+              </option>
+
+            </select>
+
+          </label>
+
+
+          <!-- NOTA -->
+          <div class="campo-cinza campo-nota">
+
+            <span class="avaliacao-titulo">
+              Nota
+            </span>
+
+            <div
+              class="estrelas estrelas-input"
+              role="radiogroup"
+              [attr.aria-label]="
+                'Avaliação do jogo, ' +
+                legendaEstrela(
+                  formJogo.controls.estrelas.value
+                )
+              "
+            >
+
+              @for (
+                estrela of estrelasDisponiveis;
+                track estrela
+              ) {
+
+                <button
+                  type="button"
+                  class="estrela-botao"
+                  [attr.aria-label]="
+                    'Definir nota de ' +
+                    estrela +
+                    ' estrelas'
+                  "
+                  (click)="
+                    definirEstrelas(
+                      estrela,
+                      $event
+                    )
+                  "
+                >
+
+                  <span
+                    class="estrela"
+                    [class.cheia]="
+                      estadoEstrela(
+                        formJogo.controls.estrelas.value,
+                        estrela
+                      ) === 'cheia'
+                    "
+                    [class.meia]="
+                      estadoEstrela(
+                        formJogo.controls.estrelas.value,
+                        estrela
+                      ) === 'meia'
+                    "
+                  >
+                    ★
+                  </span>
+
+                </button>
+
+              }
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- URL DA CAPA -->
+        <label>
+
+          URL da capa
+
+          <input
+            formControlName="imagem"
+            type="url"
+            placeholder="https://..."
+          />
+
+        </label>
+
+
+        <!-- DATAS -->
+        <div class="linha-form">
+
+          <label>
+
+            Data inicial
+
+            <input
+              formControlName="dataInicial"
+              type="date"
+            />
+
+          </label>
+
+          <label>
+
+            Data final
+
+            <input
+              formControlName="dataFinal"
+              type="date"
+            />
+
+          </label>
+
+        </div>
+
+
+        <!-- MARCADORES -->
+        <div class="marcadores">
+
+          <label class="checkbox favorito">
+
+            <span>
+              Marcar como favorito
+            </span>
+
+            <input
+              formControlName="favorito"
+              type="checkbox"
+            />
+
+          </label>
+
+
+          <label class="checkbox wishlist">
+
+            <span>
+              Wishlist
+            </span>
+
+            <input
+              formControlName="wishlist"
+              type="checkbox"
+            />
+
+          </label>
+
+        </div>
+
+
+        <!-- BOTÕES DO MODAL ADICIONAR -->
+        <div class="acoes-modal">
+
+          <button
+            type="button"
+            class="btn-secundario"
+            (click)="fecharModal()"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            class="btn-principal"
+          >
+            Salvar jogo
+          </button>
+
+        </div>
+
+      </form>
+
+    </section>
+
+  }
+
+
+  <!-- ================================================= -->
+  <!-- MODAL DETALHES DO JOGO -->
+  <!-- ================================================= -->
+
+  @if (
+    detalheAberto() &&
+    jogoSelecionado();
+    as jogo
+  ) {
+
+    <div
+      class="modal-backdrop"
+      (click)="fecharDetalhes()"
+      aria-hidden="true"
+    ></div>
+
+
+    <section
+      class="modal modal-detalhes"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-detalhes"
+    >
+
+      <h2 id="titulo-detalhes">
+        Detalhes do jogo
+      </h2>
+
+
+      <div class="detalhes-grid">
+
+        <!-- CAPA -->
+        <img
+          [src]="jogo.imagem"
+          [alt]="jogo.nome"
+        />
+
+
+        <!-- INFORMAÇÕES -->
+        <div class="detalhes-info">
+
+          <p>
+            <strong>Nome:</strong>
+            {{ jogo.nome }}
+          </p>
+
+          <p>
+            <strong>Status:</strong>
+            {{ jogo.status }}
+          </p>
+
+          <p>
+            <strong>Nota:</strong>
+            {{ legendaEstrela(jogo.estrelas) }}
+          </p>
+
+          <p>
+            <strong>Data inicial:</strong>
+            {{ formatarDataBrasil(jogo.dataInicial) }}
+          </p>
+
+          <p>
+
+            <strong>Data final:</strong>
+
+            {{
+              jogo.dataFinal
+                ? formatarDataBrasil(jogo.dataFinal)
+                : 'em andamento'
+            }}
+
+          </p>
+
+          <p>
+
+            <strong>Favorito:</strong>
+
+            {{ jogo.favorito ? 'Sim' : 'Não' }}
+
+          </p>
+
+          <p>
+
+            <strong>Wishlist:</strong>
+
+            {{ jogo.wishlist ? 'Sim' : 'Não' }}
+
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <!-- BOTÕES DO MODAL DETALHES -->
+      <div class="acoes-modal">
+
+        <button
+          type="button"
+          class="btn-remover"
+          (click)="removerJogo(jogo)"
+        >
+          🗑 Remover jogo
+        </button>
+
+        <button
+          type="button"
+          class="btn-principal"
+          (click)="fecharDetalhes()"
+        >
+          Fechar
+        </button>
+
+      </div>
+
+    </section>
+
+  }
+
+</section>
