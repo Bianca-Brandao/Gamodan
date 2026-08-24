@@ -1,1 +1,12 @@
-<p>status works!</p>
+<section class="pagina-tema">
+	<header class="pagina-cabecalho"><h1>Status dos jogos</h1><p>Acompanhe seu progresso</p></header>
+	@for (grupo of grupos(); track grupo.status) {
+		<section class="grupo-status"><h2>{{ grupo.status === 'pendente' ? 'Pendente' : grupo.status === 'jogando' ? 'Jogando' : 'Finalizado' }} <small>{{ grupo.jogos.length }}</small></h2>
+			<div class="status-lista">
+				@for (jogo of grupo.jogos; track jogo.id) {
+					<article class="status-item"><img [src]="jogo.imagem" [alt]="jogo.nome" referrerpolicy="no-referrer" /><div><h3>{{ jogo.nome }}</h3><p>{{ jogo.dataInicial }} - {{ jogo.dataFinal || 'Em andamento' }}</p><label>Status <select [value]="jogo.status" (change)="alterarStatus(jogo.id, $any($event.target).value)"><option value="pendente">Pendente</option><option value="jogando">Jogando</option><option value="finalizado">Finalizado</option></select></label></div></article>
+				} @empty { <p class="vazio">Nenhum jogo nesta categoria.</p> }
+			</div>
+		</section>
+	}
+</section>

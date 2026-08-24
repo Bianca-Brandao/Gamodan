@@ -130,10 +130,19 @@
   color: gold;
 }
 
+.seletor-estrelas { display: flex; gap: 2px; }
+.seletor-estrelas button { border: 0; background: transparent; color: #475569; font-size: 1.7rem; cursor: pointer; padding: 0 2px; }
+.seletor-estrelas button.cheia { color: var(--cor-acento); }
+.erro { color: #fca5a5; font-size: 0.8rem; }
+.dica { color: #cbd5e1; font-size: 0.78rem; }
+
 .datas {
   font-size: 0.8rem;
   color: #aaa;
 }
+
+.acoes-jogo { display: flex; gap: 8px; margin-top: 10px; }
+.acoes-jogo button { border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 5px 8px; background: rgba(255,255,255,.08); color: #fff; cursor: pointer; }
 
 .indicadores {
   margin-top: 16px;
@@ -180,6 +189,9 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   z-index: 2;
 }
+
+.preview-imagem { width: 72px; height: 92px; border-radius: 6px; object-fit: cover; }
+.confirmacao p { color: #cbd5e1; }.btn-perigo { border: 0; border-radius: 8px; padding: 10px 14px; background: #dc2626; color: #fff; font-weight: 700; cursor: pointer; }
 
 .formulario {
   display: grid;

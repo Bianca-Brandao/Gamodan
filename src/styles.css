@@ -1,0 +1,13 @@
+:root {
+	--cor-primaria: #6c5ce7;
+	--cor-acento: #f59e0b;
+	--cor-fundo: #0b1220;
+	--cor-superficie: #111827;
+	font-family: Georgia, 'Times New Roman', serif;
+	color: #f8fafc;
+	background: var(--cor-fundo);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: linear-gradient(145deg, #0b1220, #172554 55%, #312e81); }
+button, input, select { font: inherit; }

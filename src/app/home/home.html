@@ -18,7 +18,7 @@
           <div class="carrossel-track" [style.transform]="trackTransform()">
             @for (jogo of jogosCarrossel(); track jogo.id; let i = $index) {
               <article class="card mini" [class.ativo]="i === indiceAtual()" (click)="irPara(i)">
-                <img [src]="jogo.imagem" [alt]="jogo.nome" />
+                <img [src]="jogo.imagem" [alt]="jogo.nome" referrerpolicy="no-referrer" />
                 <h3>{{ jogo.nome }}</h3>
                 <div class="estrelas" aria-label="Nota do jogo">
                   @for (preenchida of estrelasArray(jogo.estrelas); track $index) {
@@ -26,6 +26,10 @@
                   }
                 </div>
                 <p class="datas">{{ jogo.dataInicial }} — {{ jogo.dataFinal || 'em andamento' }}</p>
+                <div class="acoes-jogo">
+                  <button type="button" (click)="$event.stopPropagation(); editarJogo(jogo.id)">Editar</button>
+                  <button type="button" (click)="$event.stopPropagation(); excluirJogo(jogo.id)">Excluir</button>
+                </div>
               </article>
             }
           </div>
@@ -53,23 +57,32 @@
   @if (modalAberto()) {
     <div class="modal-backdrop" (click)="fecharModal()" aria-hidden="true"></div>
     <section class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-modal">
-      <h2 id="titulo-modal">Adicionar jogo</h2>
+      <h2 id="titulo-modal">{{ jogoEditando() === null ? 'Adicionar jogo' : 'Editar jogo' }}</h2>
 
       <form [formGroup]="formJogo" (ngSubmit)="salvarJogo()" class="formulario">
         <label>
           Nome do jogo
           <input formControlName="nome" type="text" placeholder="Ex.: Hollow Knight" />
+          @if (formJogo.controls.nome.touched && formJogo.controls.nome.hasError('required')) { <small class="erro">Informe o nome do jogo.</small> }
         </label>
 
         <label>
           URL da capa
           <input formControlName="imagem" type="url" placeholder="https://..." />
+          @if (formJogo.controls.imagem.touched && formJogo.controls.imagem.hasError('required')) { <small class="erro">Informe a URL da imagem.</small> }
+          @if (formJogo.controls.imagem.touched && formJogo.controls.imagem.hasError('pattern')) { <small class="erro">Use um link HTTPS válido.</small> }
+          @if (imagemComErro()) { <small class="erro">Essa imagem não pôde ser carregada. Verifique o link HTTPS.</small> }
+          @if (formJogo.controls.imagem.value) { <img class="preview-imagem" [src]="formJogo.controls.imagem.value" alt="Pré-visualização da capa" referrerpolicy="no-referrer" (error)="imagemFalhou()" /> }
         </label>
 
         <div class="linha-form">
           <label>
-            Estrelas (1 a 3)
-            <input formControlName="estrelas" type="number" min="1" max="3" />
+            Avaliação
+            <div class="seletor-estrelas" role="radiogroup" aria-label="Escolha de 1 a 5 estrelas">
+              @for (preenchida of estrelasArray(formJogo.controls.estrelas.value); track $index; let i = $index) {
+                <button type="button" [class.cheia]="preenchida" [attr.aria-label]="(i + 1) + ' estrelas'" (click)="selecionarEstrelas(i + 1)">★</button>
+              }
+            </div>
           </label>
 
           <label>
@@ -86,11 +99,13 @@
           <label>
             Data inicial
             <input formControlName="dataInicial" type="date" />
+            @if (formJogo.controls.dataInicial.touched && formJogo.controls.dataInicial.hasError('required')) { <small class="erro">Informe a data inicial.</small> }
           </label>
 
           <label>
             Data final
-            <input formControlName="dataFinal" type="date" />
+            <input formControlName="dataFinal" type="date" aria-describedby="dica-data-final" />
+            <small id="dica-data-final" class="dica">Dica: deixe em branco se ainda estiver jogando.</small>
           </label>
         </div>
 
@@ -104,6 +119,15 @@
           <button type="submit" class="btn-principal">Salvar jogo</button>
         </div>
       </form>
+    </section>
+  }
+
+  @if (confirmacaoId() !== null) {
+    <div class="modal-backdrop" (click)="confirmacaoId.set(null)"></div>
+    <section class="modal confirmacao" role="alertdialog" aria-modal="true" aria-labelledby="titulo-confirmacao">
+      <h2 id="titulo-confirmacao">Excluir jogo?</h2>
+      <p>O jogo será removido da lista e dos favoritos.</p>
+      <div class="acoes-modal"><button type="button" class="btn-secundario" (click)="confirmacaoId.set(null)">Cancelar</button><button type="button" class="btn-perigo" (click)="confirmarExclusao()">Excluir</button></div>
     </section>
   }
 

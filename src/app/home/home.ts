@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { GameService } from '../services/game';
+import { GameStatus } from '../models/game.model';
 
 type Aba = 'favoritos' | 'recentemente';
 
@@ -21,6 +22,9 @@ export class Home implements OnDestroy {
 
   abaAtiva = signal<Aba>('recentemente');
   modalAberto = signal(false);
+  imagemComErro = signal(false);
+  jogoEditando = signal<number | null>(null);
+  confirmacaoId = signal<number | null>(null);
   indiceAtual = signal(0);
 
   // % de scroll da página, de 0 a 100 - usado pra animar o gradiente
@@ -43,12 +47,12 @@ export class Home implements OnDestroy {
 
   readonly formJogo = this.formBuilder.nonNullable.group({
     nome: ['', [Validators.required, Validators.maxLength(50)]],
-    imagem: ['', [Validators.required]],
-    estrelas: [3, [Validators.required, Validators.min(1), Validators.max(3)]],
+    imagem: ['', [Validators.required, Validators.pattern(/^https:\/\/.+/i)]],
+    estrelas: [3, [Validators.required, Validators.min(1), Validators.max(5)]],
     dataInicial: ['', [Validators.required]],
     dataFinal: [''],
     favorito: [false],
-    status: ['pendente' as const],
+    status: ['pendente' as GameStatus],
   });
 
   constructor() {
@@ -83,6 +87,8 @@ export class Home implements OnDestroy {
   }
 
   abrirModal() {
+    this.jogoEditando.set(null);
+    this.imagemComErro.set(false);
     this.modalAberto.set(true);
   }
 
@@ -115,14 +121,14 @@ export class Home implements OnDestroy {
   }
 
   salvarJogo() {
-    if (this.formJogo.invalid) {
+    if (this.formJogo.invalid || this.imagemComErro()) {
       this.formJogo.markAllAsTouched();
       return;
     }
 
     const valor = this.formJogo.getRawValue();
 
-    this.gameService.addGame({
+    const jogo = {
       nome: valor.nome,
       imagem: valor.imagem,
       estrelas: valor.estrelas,
@@ -130,7 +136,10 @@ export class Home implements OnDestroy {
       dataFinal: valor.dataFinal || undefined,
       favorito: valor.favorito,
       status: valor.status,
-    });
+    };
+    const id = this.jogoEditando();
+    if (id === null) this.gameService.addGame(jogo);
+    else this.gameService.updateGame(id, jogo);
 
     this.formJogo.reset({
       nome: '',
@@ -145,6 +154,29 @@ export class Home implements OnDestroy {
     this.abaAtiva.set('recentemente');
     this.indiceAtual.set(0);
     this.fecharModal();
+  }
+
+  editarJogo(id: number) {
+    const jogo = this.gameService.games().find(item => item.id === id);
+    if (!jogo) return;
+    this.jogoEditando.set(id);
+    this.imagemComErro.set(false);
+    this.formJogo.patchValue(jogo);
+    this.modalAberto.set(true);
+  }
+
+  imagemFalhou() { this.imagemComErro.set(true); }
+
+  selecionarEstrelas(valor: number) { this.formJogo.controls.estrelas.setValue(valor); }
+
+  excluirJogo(id: number) {
+    this.confirmacaoId.set(id);
+  }
+
+  confirmarExclusao() {
+    const id = this.confirmacaoId();
+    if (id !== null) this.gameService.removeGame(id);
+    this.confirmacaoId.set(null);
   }
 
   ngOnDestroy() {
@@ -172,6 +204,6 @@ export class Home implements OnDestroy {
 
   // gera um array [1,2,3] pra desenhar as estrelas no html
   estrelasArray(qtd: number) {
-    return Array(3).fill(0).map((_, i) => i < qtd);
+    return Array(5).fill(0).map((_, i) => i < qtd);
   }
 }
