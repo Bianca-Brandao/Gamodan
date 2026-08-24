@@ -8,6 +8,52 @@
   position: relative;
 }
 
+.hero-intro {
+  width: min(100%, 920px);
+  margin: 0 auto 24px;
+  text-align: center;
+  color: #fff;
+}
+
+.hero-intro h1 {
+  margin: 0 0 8px;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 800;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-intro p {
+  margin: 0 auto;
+  max-width: 60ch;
+  color: #cbd5e1;
+}
+
+.hero-detalhada {
+  width: min(100%, 920px);
+  margin: 32px auto 0;
+  padding: 22px 24px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(2, 6, 23, 0.4);
+  color: #fff;
+  display: grid;
+  gap: 10px;
+}
+
+.hero-detalhada h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.hero-detalhada p {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
 .auth-chamada {
   width: min(100%, 920px);
   margin: 0 auto 24px;
@@ -313,6 +359,13 @@
   color: #cbd5e1;
 }
 
+}
+
+.avaliacao-titulo {
+  font-size: 0.92rem;
+  color: #cbd5e1;
+}
+
 .campo-cinza {
   display: grid;
   gap: 6px;
@@ -519,6 +572,18 @@
     --carousel-card-width: 180px;
     --carousel-icon-size: 42px;
     padding: 24px 16px;
+  }
+
+  .hero-intro {
+    text-align: left;
+  }
+
+  .hero-intro p {
+    margin: 0;
+  }
+
+  .hero-detalhada {
+    padding: 18px;
   }
 
   .auth-chamada {
