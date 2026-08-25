@@ -1,15 +1,13 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { Auth } from './auth';
+import { AuthService } from './auth';
 
-export const authGuard: CanActivateFn = (route, state) => {
-  const auth = inject(Auth);
-  const router = inject(Router);
+export const authGuard: CanActivateFn = (_route, state) => {
+  const auth = inject(AuthService);
+  return auth.autenticado() || inject(Router).createUrlTree(['/admin'], { queryParams: { returnUrl: state.url } });
+};
 
-  if (auth.isLogado()) {
-    return true;
-  }
-
-  router.navigate(['/admin'], { queryParams: { returnUrl: state.url } });
-  return false;
+export const adminGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  return auth.admin() || inject(Router).createUrlTree(['/']);
 };

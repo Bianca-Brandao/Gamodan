@@ -1,21 +1,24 @@
 <header class="header">
-  <div class="logo">
-    <img src="https://i.postimg.cc/76ZBGkYC/Logo-Games-List.jpg" width="30px"/>
-    Gamodan
-  </div>
-  <nav class="menu">
-    <a routerLink="/" routerLinkActive="ativo" [routerLinkActiveOptions]="{exact: true}">Início</a>
-    <a routerLink="/" routerLinkActive="ativo" [routerLinkActiveOptions]="{ exact: true }"
-      >Início</a
-    >
-    @if (authService.autenticado()) {
-      <a routerLink="/lista" routerLinkActive="ativo">Lista</a>
+  <a class="logo" routerLink="/">
+    <img src="assets/icons/Logo Gamodan.svg" alt="" class="logo-icon" aria-hidden="true">
+    <span>Gamodan</span>
+  </a>
+  <nav class="menu" aria-label="Navegação principal">
+    <a routerLink="/" routerLinkActive="ativo" [routerLinkActiveOptions]="{ exact: true }">Início</a>
+    @if (auth.autenticado()) {
+      @if (auth.admin()) {
+        <a routerLink="/catalogo" routerLinkActive="ativo">Catálogo</a>
+      } @else {
+        <a routerLink="/lista" routerLinkActive="ativo">Lista</a>
+      }
       <a routerLink="/perfil" routerLinkActive="ativo">Perfil</a>
     }
     <a routerLink="/contato" routerLinkActive="ativo">Contato</a>
-    @if (authService.autenticado()) {
+    @if (auth.autenticado()) {
+      @if (auth.usuario()?.foto; as foto) { <img class="avatar-mini" [src]="foto" alt="Foto de perfil"> }
       <button type="button" class="menu-acao" (click)="sair()">Sair</button>
+    } @else {
+      <button type="button" class="menu-acao" (click)="abrirAutenticacao('entrar')">Entrar</button>
     }
   </nav>
 </header>
-

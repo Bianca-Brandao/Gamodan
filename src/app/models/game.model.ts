@@ -4,7 +4,7 @@ export interface Game {
   id: number;
   nome: string;
   imagem: string;
-  estrelas: number; // 0.5 a 5
+  estrelas: number;
   dataInicial: string;
   dataFinal?: string;
   favorito: boolean;

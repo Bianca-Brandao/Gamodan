@@ -1,360 +1,75 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, computed, effect, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Game } from '../models/game.model';
+import { AuthService } from '../services/auth';
+import { CatalogItem, CatalogService } from '../services/catalog';
 import { GameService } from '../services/game';
-import { AuthService, type AuthMode } from '../services/auth';
 
-type Aba = 'favoritos' | 'recentemente';
-type SlotCarrossel = 'single' | 'center' | 'prev' | 'next';
-
-@Component({
-  selector: 'app-home',
-  imports: [ReactiveFormsModule],
-  templateUrl: './home.html',
-  styleUrl: './home.css',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  host: {
-    '(window:scroll)': 'onScroll()',
-  },
-})
+type Aba = 'recentemente' | 'favoritos';
+@Component({ selector: 'app-home', imports: [ReactiveFormsModule], templateUrl: './home.html', styleUrl: './home.css', changeDetection: ChangeDetectionStrategy.OnPush })
 export class Home implements OnDestroy {
-  private readonly gameService = inject(GameService);
-  private readonly formBuilder = inject(FormBuilder);
-  protected readonly authService = inject(AuthService);
-  private autoplayId: ReturnType<typeof setInterval> | null = null;
-  readonly estrelasDisponiveis = [1, 2, 3, 4, 5];
+  private readonly games = inject(GameService);
+  private readonly catalog = inject(CatalogService);
+  private readonly fb = inject(FormBuilder);
+  protected readonly auth = inject(AuthService);
+  private autoplay: ReturnType<typeof setInterval> | null = null;
+  readonly estrelas = [1, 2, 3, 4, 5];
+  readonly aba = signal<Aba>('recentemente');
+  readonly modalAberto = signal(false);
+  readonly catalogoAberto = signal(false);
+  readonly detalhes = signal<Game | null>(null);
+  readonly indice = signal(0);
+  readonly termoBusca = signal('');
+  readonly previewJogos: Game[] = [
+    { id: 101, nome: 'Minecraft', imagem: 'assets/games/minecraft.jpeg', estrelas: 5, dataInicial: '2026-01-10', favorito: true, wishlist: false, status: 'jogando' },
+    { id: 102, nome: 'Hollow Knight', imagem: 'assets/games/hollowknight.jpg', estrelas: 5, dataInicial: '2026-01-15', favorito: true, wishlist: false, status: 'finalizado' },
+    { id: 103, nome: 'Stardew Valley', imagem: 'assets/games/stardewvalley.jpg', estrelas: 4.5, dataInicial: '2026-02-01', favorito: false, wishlist: true, status: 'pendente' },
+    { id: 104, nome: 'Grand Theft Auto V', imagem: 'assets/games/grandtheftautoV.jpg', estrelas: 4, dataInicial: '2026-02-05', favorito: false, wishlist: false, status: 'jogando' },
+    { id: 105, nome: 'Undertale', imagem: 'assets/games/undertale.jpg', estrelas: 5, dataInicial: '2026-02-10', favorito: true, wishlist: false, status: 'finalizado' },
+    { id: 106, nome: 'Red Dead Redemption 2', imagem: 'assets/games/reddeadredemption.jpg', estrelas: 5, dataInicial: '2026-02-15', favorito: true, wishlist: true, status: 'pendente' },
+  ];
 
-  abaAtiva = signal<Aba>('recentemente');
-  modalAberto = signal(false);
-  detalheAberto = signal(false);
-  jogoSelecionado = signal<Game | null>(null);
-  indiceAtual = signal(0);
-
-  // % de scroll da página, de 0 a 100 - usado pra animar o gradiente
-  scrollPercent = signal(0);
-
-  jogosFiltrados = computed(() => {
-    const todos = this.gameService.games();
-    const aba = this.abaAtiva();
-
-    if (aba === 'favoritos') {
-      return todos.filter(j => j.favorito);
+  readonly jogos = computed(() => {
+    if (this.auth.admin()) {
+      return this.catalog.items().map((item, index) => ({ id: index + 1, nome: item.nome, imagem: item.imagem, estrelas: 3, dataInicial: '', favorito: false, wishlist: false, status: 'pendente' as const }));
     }
-    // "recentemente" - os últimos adicionados primeiro
-    return [...todos].sort((a, b) => b.id - a.id);
+    if (!this.auth.autenticado()) return this.previewJogos;
+    const base = this.aba() === 'favoritos' ? this.games.games().filter((game) => game.favorito) : [...this.games.games()].sort((a, b) => b.id - a.id);
+    return base.length ? base.slice(0, 6) : this.previewJogos;
   });
-
-  jogosCarrossel = computed(() => this.jogosFiltrados().slice(0, 5));
-  carrosselVisivel = computed(() => {
-    const jogos = this.jogosCarrossel();
-    const total = jogos.length;
-
-    if (total === 0) {
-      return [];
+  readonly visiveis = computed(() => { const games = this.jogos(); if (games.length <= 3) return games; const index = this.indice() % games.length; return [games[(index - 1 + games.length) % games.length], games[index], games[(index + 1) % games.length]]; });
+  readonly form = this.fb.nonNullable.group({ nome: ['', [Validators.required, Validators.maxLength(50)]], imagem: ['', [Validators.required]], estrelas: [3, [Validators.min(.5), Validators.max(5)]], dataInicial: ['', Validators.required], dataFinal: [''], favorito: [false], wishlist: [false], status: ['pendente' as const] });
+  readonly formCatalogo = this.fb.nonNullable.group({ nome: ['', [Validators.required, Validators.maxLength(50)]], imagem: ['', [Validators.required]] });
+  readonly sugestoes = computed(() => this.catalog.buscar(this.termoBusca()));
+  readonly catalogoEditando = signal<string | null>(null);
+  constructor() { effect(() => { const total = this.jogos().length; if (this.indice() >= total) this.indice.set(0); this.limparAutoplay(); if (total > 1 && !this.modalAberto() && !this.detalhes()) this.autoplay = setInterval(() => this.avancar(), 3500); }, { allowSignalWrites: true }); }
+  abrirJogo(): void { if (this.auth.autenticado()) this.modalAberto.set(true); else this.auth.abrirModal('entrar'); }
+  abrirCatalogo(jogo?: Game, event?: MouseEvent): void {
+    if (event) event.stopPropagation();
+    if (jogo) {
+      this.catalogoEditando.set(jogo.nome);
+      this.formCatalogo.reset({ nome: jogo.nome, imagem: jogo.imagem });
+    } else {
+      this.catalogoEditando.set(null);
+      this.formCatalogo.reset({ nome: '', imagem: '' });
     }
-
-    if (total === 1) {
-      return [{ jogo: jogos[0], indiceOriginal: 0, slot: 'single' as SlotCarrossel }];
-    }
-
-    if (total === 2) {
-      const centro = this.indiceAtual() % 2;
-      const proximo = (centro + 1) % 2;
-
-      return [
-        { jogo: jogos[centro], indiceOriginal: centro, slot: 'center' as SlotCarrossel },
-        { jogo: jogos[proximo], indiceOriginal: proximo, slot: 'next' as SlotCarrossel },
-      ];
-    }
-
-    const centro = this.indiceAtual();
-    const anterior = (centro - 1 + total) % total;
-    const proximo = (centro + 1) % total;
-
-    return [
-      { jogo: jogos[anterior], indiceOriginal: anterior, slot: 'prev' as SlotCarrossel },
-      { jogo: jogos[centro], indiceOriginal: centro, slot: 'center' as SlotCarrossel },
-      { jogo: jogos[proximo], indiceOriginal: proximo, slot: 'next' as SlotCarrossel },
-    ];
-  });
-
-  readonly temMultiplosJogos = computed(() => this.jogosCarrossel().length > 1);
-  readonly rotuloFiltro = computed(() =>
-    this.abaAtiva() === 'recentemente' ? 'Adicionados recentemente' : 'Favoritos'
-  );
-  readonly proximoFiltro = computed(() =>
-    this.abaAtiva() === 'recentemente' ? 'Favoritos' : 'Adicionados recentemente'
-  );
-
-  readonly formJogo = this.formBuilder.nonNullable.group({
-    nome: ['', [Validators.required, Validators.maxLength(50)]],
-    imagem: ['', [Validators.required]],
-    estrelas: [5, [Validators.required, Validators.min(0.5), Validators.max(5)]],
-    dataInicial: ['', [Validators.required]],
-    dataFinal: [''],
-    favorito: [false],
-    wishlist: [false],
-    status: ['pendente' as const],
-  });
-
-  readonly loginForm = this.formBuilder.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
-    senha: ['', [Validators.required, Validators.minLength(6)]],
-  });
-
-  readonly cadastroForm = this.formBuilder.nonNullable.group({
-    nome: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(40)]],
-    email: ['', [Validators.required, Validators.email]],
-    senha: ['', [Validators.required, Validators.minLength(6)]],
-  });
-
-  constructor() {
-    effect(
-      () => {
-        const total = this.jogosCarrossel().length;
-        const modalAberto = this.modalAberto();
-
-        if (total === 0) {
-          this.indiceAtual.set(0);
-        }
-
-        if (total > 0 && this.indiceAtual() >= total) {
-          this.indiceAtual.set(0);
-        }
-
-        this.configurarAutoplay(total, modalAberto);
-      },
-      { allowSignalWrites: true }
-    );
+    this.catalogoAberto.set(true);
   }
-
-  selecionarAba(aba: Aba) {
-    this.abaAtiva.set(aba);
-    this.indiceAtual.set(0);
-  }
-
-  alternarAba() {
-    if (!this.authService.autenticado()) {
-      this.authService.abrirModal('entrar');
-      return;
-    }
-
-    this.selecionarAba(this.abaAtiva() === 'recentemente' ? 'favoritos' : 'recentemente');
-  }
-
-  abrirAutenticacao(modo: 'entrar' | 'criar') {
-    this.authService.abrirModal(modo);
-  }
-
-  fecharAutenticacao() {
-    this.authService.fecharModal();
-  }
-
-  trocarAutenticacao(modo: AuthMode) {
-    this.authService.abrirModal(modo);
-  }
-
-  entrar() {
-    if (this.loginForm.invalid) {
-      this.loginForm.markAllAsTouched();
-      return;
-    }
-
-    const dados = this.loginForm.getRawValue();
-    this.authService.login({
-      nome: dados.email.split('@')[0],
-      email: dados.email,
-      senha: dados.senha,
-    });
-    this.loginForm.reset({ email: '', senha: '' });
-  }
-
-  criarConta() {
-    if (this.cadastroForm.invalid) {
-      this.cadastroForm.markAllAsTouched();
-      return;
-    }
-
-    const dados = this.cadastroForm.getRawValue();
-    this.authService.register(dados);
-    this.cadastroForm.reset({ nome: '', email: '', senha: '' });
-  }
-
-  onScroll() {
-    const alturaTotal = document.body.scrollHeight - window.innerHeight;
-    const percentual = alturaTotal > 0 ? (window.scrollY / alturaTotal) * 100 : 0;
-    this.scrollPercent.set(percentual);
-  }
-
-  abrirModal() {
-    if (!this.authService.autenticado()) {
-      this.authService.abrirModal('entrar');
-      return;
-    }
-
-    this.jogoSelecionado.set(null);
-    this.detalheAberto.set(false);
-    this.modalAberto.set(true);
-  }
-
-  fecharModal() {
-    this.modalAberto.set(false);
-  }
-
-  abrirDetalhes(jogo: Game) {
-    if (!this.authService.autenticado()) {
-      this.authService.abrirModal('entrar');
-      return;
-    }
-
-    this.modalAberto.set(false);
-    this.jogoSelecionado.set(jogo);
-    this.detalheAberto.set(true);
-  }
-
-  fecharDetalhes() {
-    this.detalheAberto.set(false);
-    this.jogoSelecionado.set(null);
-  }
-
-  avancar() {
-    if (!this.authService.autenticado()) {
-      this.authService.abrirModal('entrar');
-      return;
-    }
-
-    const total = this.jogosCarrossel().length;
-    if (total <= 1) {
-      return;
-    }
-    this.indiceAtual.update(valor => (valor + 1) % total);
-  }
-
-  voltar() {
-    if (!this.authService.autenticado()) {
-      this.authService.abrirModal('entrar');
-      return;
-    }
-
-    const total = this.jogosCarrossel().length;
-    if (total <= 1) {
-      return;
-    }
-    this.indiceAtual.update(valor => (valor - 1 + total) % total);
-  }
-
-  irPara(indice: number) {
-    if (!this.authService.autenticado()) {
-      this.authService.abrirModal('entrar');
-      return;
-    }
-
-    this.indiceAtual.set(indice);
-  }
-
-  estadoEstrela(valor: number, estrela: number) {
-    const diferenca = valor - (estrela - 1);
-
-    if (diferenca >= 1) {
-      return 'cheia';
-    }
-
-    if (diferenca >= 0.5) {
-      return 'meia';
-    }
-
-    return 'vazia';
-  }
-
-  definirEstrelas(estrela: number, event: MouseEvent) {
-    const alvo = event.currentTarget as HTMLElement | null;
-    if (!alvo) {
-      return;
-    }
-
-    const retangulo = alvo.getBoundingClientRect();
-    const clicouNaMetadeEsquerda = event.detail > 0 && event.clientX - retangulo.left <= retangulo.width / 2;
-    const valor = clicouNaMetadeEsquerda ? estrela - 0.5 : estrela;
-    const valorNormalizado = Math.min(5, Math.max(0.5, valor));
-
-    this.formJogo.controls.estrelas.setValue(valorNormalizado);
-  }
-
-  legendaEstrela(valor: number) {
-    const cheio = Math.floor(valor);
-    const meio = valor % 1 >= 0.5 ? 1 : 0;
-    return `${cheio} estrelas${meio ? ' e meio' : ''}`;
-  }
-
-  formatarDataBrasil(data: string) {
-    return new Intl.DateTimeFormat('pt-BR').format(new Date(`${data}T00:00:00`));
-  }
-
-  nomeEstrela(valor: number) {
-    return `${valor} estrela${valor > 1 ? 's' : ''}`;
-  }
-
-  salvarJogo() {
-    if (!this.authService.autenticado()) {
-      this.authService.abrirModal('entrar');
-      return;
-    }
-
-    if (this.formJogo.invalid) {
-      this.formJogo.markAllAsTouched();
-      return;
-    }
-
-    const valor = this.formJogo.getRawValue();
-
-    this.gameService.addGame({
-      nome: valor.nome,
-      imagem: valor.imagem,
-      estrelas: valor.estrelas,
-      dataInicial: valor.dataInicial,
-      dataFinal: valor.dataFinal || undefined,
-      favorito: valor.favorito,
-      wishlist: valor.wishlist,
-      status: valor.status,
-    });
-
-    this.formJogo.reset({
-      nome: '',
-      imagem: '',
-      estrelas: 3,
-      dataInicial: '',
-      dataFinal: '',
-      favorito: false,
-      wishlist: false,
-      status: 'pendente',
-    });
-
-    this.abaAtiva.set('recentemente');
-    this.indiceAtual.set(0);
-    this.fecharModal();
-  }
-
-  ngOnDestroy() {
-    this.limparAutoplay();
-  }
-
-  private configurarAutoplay(total: number, modalAberto: boolean) {
-    this.limparAutoplay();
-
-    if (total <= 1 || modalAberto) {
-      return;
-    }
-
-    this.autoplayId = setInterval(() => {
-      this.avancar();
-    }, 3500);
-  }
-
-  private limparAutoplay() {
-    if (this.autoplayId !== null) {
-      clearInterval(this.autoplayId);
-      this.autoplayId = null;
-    }
-  }
-
+  excluirCatalogo(nome: string, event: MouseEvent): void { event.stopPropagation(); this.catalog.removeItem(nome); if (this.catalogoEditando() === nome) { this.catalogoEditando.set(null); this.catalogoAberto.set(false); } }
+  selecionarArquivoCatalogo(event: Event): void { const input = event.target as HTMLInputElement; const file = input.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => this.formCatalogo.controls.imagem.setValue(String(reader.result)); reader.readAsDataURL(file); }
+  onNomeInput(event: Event): void { this.termoBusca.set((event.target as HTMLInputElement).value); }
+  selecionarSugestao(item: CatalogItem): void { this.form.controls.nome.setValue(item.nome); this.form.controls.imagem.setValue(item.imagem); this.termoBusca.set(''); }
+  salvarCatalogo(): void { if (this.formCatalogo.invalid) return this.formCatalogo.markAllAsTouched(); const value = this.formCatalogo.getRawValue(); const original = this.catalogoEditando(); if (original) this.catalog.updateItem(original, value); else this.catalog.addItem(value); this.formCatalogo.reset({ nome: '', imagem: '' }); this.termoBusca.set(''); this.catalogoEditando.set(null); this.catalogoAberto.set(false); }
+  filtrar(): void { if (!this.auth.autenticado()) return this.auth.abrirModal('entrar'); this.aba.set(this.aba() === 'recentemente' ? 'favoritos' : 'recentemente'); this.indice.set(0); }
+  avancar(): void { const total = this.jogos().length; if (total > 1) this.indice.update((value) => (value + 1) % total); }
+  voltar(): void { const total = this.jogos().length; if (total > 1) this.indice.update((value) => (value - 1 + total) % total); }
+  irPara(index: number): void { this.indice.set(index); }
+  abrirDetalhes(game: Game): void { if (!this.auth.autenticado()) return this.auth.abrirModal('entrar'); this.detalhes.set(game); }
+  salvar(): void { if (this.form.invalid) return this.form.markAllAsTouched(); const value = this.form.getRawValue(); this.games.addGame({ ...value, dataFinal: value.dataFinal || undefined }); this.form.reset({ nome: '', imagem: '', estrelas: 3, dataInicial: '', dataFinal: '', favorito: false, wishlist: false, status: 'pendente' }); this.termoBusca.set(''); this.modalAberto.set(false); this.aba.set('recentemente'); }
+  definirEstrelas(star: number, event: MouseEvent): void { const box = (event.currentTarget as HTMLElement).getBoundingClientRect(); this.form.controls.estrelas.setValue(event.clientX - box.left <= box.width / 2 ? star - .5 : star); }
+  selecionarArquivo(event: Event): void { const input = event.target as HTMLInputElement; const file = input.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => this.form.controls.imagem.setValue(String(reader.result)); reader.readAsDataURL(file); }
+  estadoEstrela(value: number, star: number): string { return value >= star ? 'full' : value >= star - .5 ? 'half' : ''; }
+  formatarData(value: string): string { return new Intl.DateTimeFormat('pt-BR').format(new Date(`${value}T00:00:00`)); }
+  ngOnDestroy(): void { this.limparAutoplay(); }
+  private limparAutoplay(): void { if (this.autoplay) clearInterval(this.autoplay); this.autoplay = null; }
 }

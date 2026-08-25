@@ -1,23 +1,10 @@
-<section class="perfil">
-  <div class="perfil-card">
-    <p class="perfil-selo">Perfil</p>
-
-    @if (authService.usuario(); as usuario) {
-      <h1>Bem-vindo, {{ usuario.nome }}</h1>
-      <p class="perfil-texto">Seu acesso está liberado e o menu completo aparece no header.</p>
-
-      <div class="perfil-dados">
-        <div>
-          <span>Nome</span>
-          <strong>{{ usuario.nome }}</strong>
-        </div>
-        <div>
-          <span>E-mail</span>
-          <strong>{{ usuario.email }}</strong>
-        </div>
-      </div>
-
-      <button type="button" class="perfil-botao" (click)="sair()">Sair da conta</button>
-    }
+<main class="perfil"><section class="card">@if (auth.usuario(); as usuario) {
+  <div class="avatar-area">
+    @if (usuario.foto) { <img class="avatar" [src]="usuario.foto" [alt]="'Foto de ' + usuario.nome"> }
+    @else { <div class="avatar avatar-inicial">{{ usuario.nome.charAt(0).toUpperCase() }}</div> }
+    <div class="avatar-info">
+      <label class="trocar-foto">Trocar foto<input type="file" accept="image/*" (change)="selecionarFoto($event)"></label>
+    </div>
+    @if (auth.admin()) { <span class="badge-admin"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17.2 5.9 20.6l1.4-6.8L2.2 9.1l6.9-.8L12 2z" fill="currentColor"/></svg>Administrador(a)</span> }
   </div>
-</section>
+  <p class="eyebrow">Perfil</p><h1>Bem-vindo(a), {{ usuario.nome }}</h1><p>Seu acesso está ativo. Jogos desta conta ficam guardados em lista exclusiva.</p><div class="data"><div><span>Nome</span><strong>{{ usuario.nome }}</strong></div><div><span>E-mail</span><strong>{{ usuario.email }}</strong></div></div><div class="acoes-perfil"><button type="button" class="btn-sair" (click)="sair()">Sair da conta</button></div> }</section></main>

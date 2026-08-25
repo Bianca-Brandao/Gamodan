@@ -1,17 +1,20 @@
-<div class="admin-container">
-  <h2>Login Administrador</h2>
+<main class="admin-page">
+  <section class="card-admin">
+    <p class="eyebrow">Área restrita</p>
+    <h1>Acesso administrativo</h1>
+    <p class="descricao">Entre com a conta cadastrada de uma integrante do projeto.</p>
 
-  <form [formGroup]="form" (ngSubmit)="entrar()">
-    <label for="email">E-mail</label>
-    <input id="email" type="email" formControlName="email">
+    <form [formGroup]="form" (ngSubmit)="entrar()">
+      <label>E-mail
+        <input type="email" formControlName="email" autocomplete="email" placeholder="voce@exemplo.com">
+      </label>
+      <label>Senha
+        <input type="password" formControlName="senha" autocomplete="current-password" placeholder="Sua senha">
+      </label>
 
-    <label for="senha">Senha</label>
-    <input id="senha" type="password" formControlName="senha">
+      @if (erro) { <p class="erro" role="alert">E-mail ou senha incorretos.</p> }
 
-    <button type="submit" [disabled]="form.invalid">Entrar</button>
-  </form>
-
-  @if (erro) {
-    <p class="erro">E-mail ou senha incorretos</p>
-  }
-</div>
+      <button type="submit" [disabled]="form.invalid">Entrar</button>
+    </form>
+  </section>
+</main>

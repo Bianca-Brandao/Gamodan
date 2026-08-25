@@ -1,15 +1,12 @@
 import { Routes } from '@angular/router';
-import { Home } from './home/home';
-import { Lista } from './lista/lista';
-import { Contato } from './contato/contato';
-import { Admin } from './features/admin/admin';
-import { authGuard } from './services/auth-guard';
-import { Perfil } from './perfil/perfil';
+import { adminGuard, authGuard } from './services/auth-guard';
 
 export const routes: Routes = [
-  { path: '', component: Home },
-  { path: 'admin', component: Admin, canActivate: [authGuard]},
-  { path: 'lista', component: Lista, canActivate: [authGuard] },
-  { path: 'perfil', component: Perfil, canActivate: [authGuard] },
-  { path: 'contato', component: Contato },
+  { path: '', loadComponent: () => import('./home/home').then((m) => m.Home) },
+  { path: 'admin', loadComponent: () => import('./features/admin/admin').then((m) => m.Admin) },
+  { path: 'catalogo', canActivate: [adminGuard], loadComponent: () => import('./features/catalogo/catalogo').then((m) => m.Catalogo) },
+  { path: 'contato', loadComponent: () => import('./contato/contato').then((m) => m.Contato) },
+  { path: 'lista', canActivate: [authGuard], loadComponent: () => import('./lista/lista').then((m) => m.Lista) },
+  { path: 'perfil', canActivate: [authGuard], loadComponent: () => import('./perfil/perfil').then((m) => m.Perfil) },
+  { path: '**', redirectTo: '' },
 ];

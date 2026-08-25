@@ -1,0 +1,92 @@
+<main class="catalogo-page">
+  <header class="header-catalogo">
+    <div class="header-texto">
+      <p class="eyebrow">Área administrativa</p>
+      <h1>Catálogo Gamodan</h1>
+      <p class="subtitulo">{{ itens().length }} jogo(s) disponível(is) para sugestão às contas.</p>
+    </div>
+    <button type="button" class="btn-adicionar" (click)="abrirAdicao()">Adicionar ao catálogo</button>
+  </header>
+
+  <section class="grid">
+    @for (item of itens(); track item.nome) {
+      <article class="card" (click)="abrirDetalhes(item)">
+        <div class="capa-container"><img [src]="item.imagem" [alt]="item.nome"></div>
+        <div class="card-corpo">
+          <h2>{{ item.nome }}</h2>
+          <div class="card-acoes">
+            <button type="button" class="btn-acao" (click)="iniciarEdicao(item, $event)">Editar</button>
+            <button type="button" class="btn-acao perigo" (click)="excluir(item.nome, $event)">Excluir</button>
+          </div>
+        </div>
+      </article>
+    } @empty {
+      <div class="empty-state">
+        <p class="empty-title">Catálogo vazio</p>
+        <p class="empty-copy">Adicione jogos para sugerir às contas no cadastro.</p>
+      </div>
+    }
+  </section>
+
+  @if (selecionado() || adicionando()) {
+    <div class="backdrop" (click)="fecharModal()" aria-hidden="true"></div>
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="catalogo-title">
+      <button class="close" type="button" (click)="fecharModal()" aria-label="Fechar">×</button>
+
+      @if (selecionado(); as item) {
+        @if (!editando() && !adicionando()) {
+          <h2 id="catalogo-title">Detalhes do catálogo</h2>
+          <div class="detail-grid">
+            <img [src]="item.imagem" [alt]="item.nome">
+            <dl><dt>Nome</dt><dd>{{ item.nome }}</dd></dl>
+          </div>
+          <div class="dialog-actions">
+            <button type="button" class="ghost" (click)="fecharModal()">Fechar</button>
+            <button type="button" class="perigo-btn" (click)="excluir(item.nome)">Excluir</button>
+            <button type="button" class="primary" (click)="iniciarEdicao(item)">Editar</button>
+          </div>
+        } @else {
+          <h2 id="catalogo-title">Editar jogo do catálogo</h2>
+          <form [formGroup]="form" (ngSubmit)="salvar()">
+            <label>Nome do jogo
+              <input formControlName="nome" placeholder="Ex.: Hollow Knight">
+            </label>
+            <div class="campo-capa">
+              <label>Capa do jogo
+                <input type="file" accept="image/*" (change)="selecionarArquivo($event)">
+              </label>
+              <label>ou use uma URL
+                <input type="url" formControlName="imagem" placeholder="https://...">
+              </label>
+              @if (form.controls.imagem.value) { <img class="capa-preview" [src]="form.controls.imagem.value" alt="Prévia da capa"> }
+            </div>
+            <div class="dialog-actions">
+              <button type="button" class="ghost" (click)="fecharModal()">Cancelar</button>
+              <button type="submit" class="primary">Salvar alterações</button>
+            </div>
+          </form>
+        }
+      } @else {
+        <h2 id="catalogo-title">Adicionar ao catálogo</h2>
+        <form [formGroup]="form" (ngSubmit)="salvar()">
+          <label>Nome do jogo
+            <input formControlName="nome" placeholder="Ex.: Hollow Knight">
+          </label>
+          <div class="campo-capa">
+            <label>Capa do jogo
+              <input type="file" accept="image/*" (change)="selecionarArquivo($event)">
+            </label>
+            <label>ou use uma URL
+              <input type="url" formControlName="imagem" placeholder="https://...">
+            </label>
+            @if (form.controls.imagem.value) { <img class="capa-preview" [src]="form.controls.imagem.value" alt="Prévia da capa"> }
+          </div>
+          <div class="dialog-actions">
+            <button type="button" class="ghost" (click)="fecharModal()">Cancelar</button>
+            <button type="submit" class="primary">Publicar no catálogo</button>
+          </div>
+        </form>
+      }
+    </section>
+  }
+</main>

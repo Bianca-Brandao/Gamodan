@@ -1,59 +1,119 @@
 # Gamodan
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.20.
+**Gamodan** é um catálogo pessoal de jogos: organize o que já jogou, o que está jogando e o que ainda quer jogar — tudo em um só lugar, com uma conta por pessoa e dados separados por login.
 
-## Development server
+---
 
-To start a local development server, run:
+## Sobre o projeto
 
-```bash
-ng serve
+Projeto front-end em **Angular** (standalone components, signals e nova sintaxe de control flow). Os dados são persistidos localmente no navegador (`localStorage`), isolados por conta — não há backend.
+
+### Funcionalidades
+
+| Área | O que faz |
+|---|---|
+| **Home** | Carrossel com jogos em destaque, preview pública com jogos de amostra, cadastro de jogos com capa (arquivo ou URL), nota em estrelas, status e datas |
+| **Conta** | Cadastro com foto de perfil e confirmação de senha, login com validação, sessão persistente e modal de acesso global em qualquer página |
+| **Lista** | Grade dos jogos da conta com filtros (Todos, Favoritos, Wishlist e Status), edição completa, exclusão e ações rápidas por card |
+| **Catálogo** *(admin)* | Acervo compartilhado de jogos gerenciado por administradoras: adicionar, editar e excluir |
+| **Autocomplete** | Ao cadastrar um jogo, o nome sugere jogos do catálogo e preenche nome + capa automaticamente |
+| **Perfil** | Avatar (upload com prévia), dados da conta e selo de administrador(a) |
+| **Contato** | Integrantes do projeto com links de E-mail, LinkedIn e GitHub e busca por nome |
+
+### Acesso administrativo
+
+- Contas criadas com o e-mail de uma **integrante do projeto** (página Contato) recebem o papel de **admin** automaticamente.
+- Admins enxergam o menu **Catálogo** (no lugar de Lista), gerenciam o acervo e o carrossel da Home passa a mostrar os jogos do catálogo, com edição e exclusão direto nos cards.
+- Há um atalho discreto **"Entrar como administrador"** no modal de acesso, que leva à página de login administrativa.
+
+---
+
+## Estrutura do projeto
+
+```
+src/app/
+├── app.ts / app.html / app.css     # Shell da aplicação (header + rotas + modal global)
+├── app.config.ts                   # Configuração da aplicação
+├── app.routes.ts                   # Rotas com lazy loading e guards
+├── components/                     # Componentes reutilizados
+│   ├── header/                     # Navegação principal
+│   └── auth-modal/                 # Modal global de login/cadastro
+├── home/                           # Página inicial (carrossel, cadastro de jogos)
+├── lista/                          # Lista pessoal com filtros e edição
+├── perfil/                         # Perfil da conta (avatar, dados, sair)
+├── contato/                        # Integrantes do projeto
+├── features/                       # Áreas restritas
+│   ├── admin/                      # Login administrativo
+│   └── catalogo/                   # Gerenciamento do catálogo (admins)
+├── models/                         # Tipos de domínio (Game, GameStatus)
+└── services/                       # Regras de negócio e persistência
+    ├── auth.ts                     # Sessão, contas e papel de admin
+    ├── auth-guard.ts               # Guards de rota (authGuard, adminGuard)
+    ├── game.ts                     # Lista pessoal por conta
+    └── catalog.ts                  # Catálogo compartilhado
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Imagens estáticas ficam em `public/assets/` (`icons/` para a logo, `games/` para as capas de preview).
 
-## Code scaffolding
+---
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+## Como executar
 
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Requisitos: **Node.js** e **npm**.
 
 ```bash
-ng generate --help
+npm install     # instalar dependências
+npm start       # servidor de desenvolvimento (http://localhost:4200)
 ```
 
-## Building
-
-To build the project run:
+Outros comandos:
 
 ```bash
-ng build
+npm run build   # build de produção (pasta dist/)
+npm test        # testes unitários (Vitest)
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+---
 
-## Running unit tests
+## Rotas
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+| Rota | Acesso | Descrição |
+|---|---|---|
+| `/` | Público | Home com carrossel e preview |
+| `/contato` | Público | Integrantes do projeto |
+| `/admin` | Público | Login administrativo |
+| `/lista` | Autenticado | Lista pessoal de jogos |
+| `/perfil` | Autenticado | Perfil da conta |
+| `/catalogo` | Administrador | Gerenciamento do catálogo |
 
-```bash
-ng test
-```
+Rotas desconhecidas redirecionam para a Home.
 
-## Running end-to-end tests
+---
 
-For end-to-end (e2e) testing, run:
+## Persistência de dados
 
-```bash
-ng e2e
-```
+Tudo é salvo no `localStorage` do navegador:
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+| Chave | Conteúdo |
+|---|---|
+| `gamodan-auth-user` | Sessão ativa da conta |
+| `gamodan-users` | Contas cadastradas (nome, e-mail e senha) |
+| `gamodan-games:<email>` | Lista de jogos da conta |
+| `gamodan-catalog` | Catálogo compartilhado |
 
-## Additional Resources
+> Por usar armazenamento local, os dados ficam apenas no navegador em que a conta foi criada.
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+---
+
+## Tecnologias
+
+- [Angular](https://angular.dev) 22 — standalone components, signals, control flow moderno e lazy loading
+- TypeScript (modo estrito)
+- Vitest para testes unitários
+- CSS puro com design system próprio (tema escuro, gradientes âmbar/vermelho)
+
+---
+
+## Equipe
+
+Confira as integrantes na página **Contato** do site.

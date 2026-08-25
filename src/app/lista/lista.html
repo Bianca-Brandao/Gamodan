@@ -1,24 +1,169 @@
-<section class="lista-page">
-	<header class="lista-header">
-		<h1>Minha lista de jogos</h1>
-		<p>{{ jogos().length }} jogo(s) adicionado(s)</p>
-	</header>
+<main class="lista-page">
+  <header class="header-lista">
+    <div class="header-texto">
+      <p class="eyebrow">Coleção pessoal</p>
+      <h1>Minha lista de jogos</h1>
+      <p class="subtitulo">{{ totalGeral() }} jogo(s) cadastrado(s) · {{ totalFavoritos() }} favorito(s) · {{ totalWishlist() }} wishlist</p>
+    </div>
+    @if (auth.usuario()?.foto; as foto) {
+      <img class="avatar-lista" [src]="foto" [alt]="'Foto de ' + auth.usuario()?.nome">
+    }
 
-	<div class="lista-grid">
-		@for (jogo of jogos(); track jogo.id) {
-			<article class="item-jogo">
-				<img [src]="jogo.imagem" [alt]="jogo.nome" />
-				<div class="item-conteudo">
-					<h3>{{ jogo.nome }}</h3>
-					<p class="status">Status: {{ jogo.status }}</p>
-					<p class="datas">{{ jogo.dataInicial }} — {{ jogo.dataFinal || 'em andamento' }}</p>
-					<p class="favorito" [class.ativo]="jogo.favorito">
-						{{ jogo.favorito ? 'Favorito' : 'Nao favorito' }}
-					</p>
-				</div>
-			</article>
-		} @empty {
-			<p class="vazio">Nenhum jogo adicionado ainda.</p>
-		}
-	</div>
-</section>
+    <nav class="filtros" aria-label="Filtrar lista de jogos">
+      <button type="button" class="filtro-btn" [class.ativo]="filtro() === 'todos'" (click)="definirFiltro('todos')">Todos</button>
+      <button type="button" class="filtro-btn" [class.ativo]="filtro() === 'favoritos'" (click)="definirFiltro('favoritos')">Favoritos</button>
+      <button type="button" class="filtro-btn" [class.ativo]="filtro() === 'wishlist'" (click)="definirFiltro('wishlist')">Wishlist</button>
+      <label class="filtro-status">
+        <span class="sr-only">Filtrar por status</span>
+        <select [value]="filtroStatusSelecionado()" (change)="definirFiltroStatus($any($event.target).value)">
+          <option value="">Status</option>
+          <option value="jogando">Jogando</option>
+          <option value="pendente">Pendente</option>
+          <option value="finalizado">Finalizado</option>
+        </select>
+      </label>
+    </nav>
+  </header>
+
+  <section class="grid">
+    @for (jogo of jogos(); track jogo.id) {
+      <article class="card" (click)="abrirDetalhes(jogo)">
+        <div class="capa-container">
+          <img [src]="jogo.imagem" [alt]="jogo.nome">
+          <button
+            type="button"
+            class="fav-toggle"
+            [class.ativo]="jogo.favorito"
+            [attr.aria-label]="jogo.favorito ? 'Remover dos favoritos' : 'Favoritar jogo'"
+            (click)="alternarFavorito(jogo.id, $event)"
+          >
+            ★
+          </button>
+        </div>
+
+        <div class="card-corpo">
+          <div class="card-topo">
+            <h2>{{ jogo.nome }}</h2>
+            <span class="badge" [attr.data-status]="jogo.status">{{ jogo.status }}</span>
+          </div>
+
+          <div class="estrelas-preview" [attr.aria-label]="jogo.estrelas + ' estrelas'">
+            @for (star of estrelas; track star) {
+              <span [class]="estadoEstrela(jogo.estrelas, star)">★</span>
+            }
+          </div>
+
+          <p class="datas">
+            {{ formatarData(jogo.dataInicial) }}
+            · {{ jogo.dataFinal ? formatarData(jogo.dataFinal) : 'Em andamento' }}
+          </p>
+
+          <div class="card-acoes" (click)="$event.stopPropagation()">
+            <label class="status-inline">
+              <span class="sr-only">Alterar status</span>
+              <select [value]="jogo.status" (change)="alterarStatus(jogo.id, $any($event.target).value, $event)">
+                <option value="pendente">Pendente</option>
+                <option value="jogando">Jogando</option>
+                <option value="finalizado">Finalizado</option>
+              </select>
+            </label>
+            <button type="button" class="btn-acao" (click)="iniciarEdicao(jogo, $event)">Editar</button>
+            <button type="button" class="btn-acao perigo" (click)="excluirJogo(jogo.id, $event)">Excluir</button>
+          </div>
+        </div>
+      </article>
+    } @empty {
+      <div class="empty-state">
+        <p class="empty-title">Nenhum jogo encontrado</p>
+        <p class="empty-copy">Não há títulos para o filtro selecionado.</p>
+      </div>
+    }
+  </section>
+
+  @if (jogoSelecionado(); as jogo) {
+    <div class="backdrop" (click)="fecharModal()" aria-hidden="true"></div>
+
+    <section class="dialog" role="dialog" aria-modal="true" [attr.aria-labelledby]="editando() ? 'edit-title' : 'detail-title'">
+      <button class="close" type="button" (click)="fecharModal()" aria-label="Fechar">×</button>
+
+      @if (!editando()) {
+        <h2 id="detail-title">Detalhes do jogo</h2>
+        <div class="detail-grid">
+          <img [src]="jogo.imagem" [alt]="jogo.nome">
+          <dl>
+            <dt>Nome</dt><dd>{{ jogo.nome }}</dd>
+            <dt>Status</dt><dd>{{ jogo.status }}</dd>
+            <dt>Nota</dt><dd>{{ jogo.estrelas }} estrelas</dd>
+            <dt>Início</dt><dd>{{ formatarData(jogo.dataInicial) }}</dd>
+            <dt>Final</dt><dd>{{ jogo.dataFinal ? formatarData(jogo.dataFinal) : 'Em andamento' }}</dd>
+            <dt>Favorito</dt><dd>{{ jogo.favorito ? 'Sim' : 'Não' }}</dd>
+            <dt>Wishlist</dt><dd>{{ jogo.wishlist ? 'Sim' : 'Não' }}</dd>
+          </dl>
+        </div>
+
+        <div class="dialog-actions">
+          <button type="button" class="ghost" (click)="fecharModal()">Fechar</button>
+          <button type="button" class="perigo-btn" (click)="excluirJogo(jogo.id)">Excluir jogo</button>
+          <button type="button" class="primary" (click)="iniciarEdicao(jogo)">Editar informações</button>
+        </div>
+      } @else {
+        <h2 id="edit-title">Editar jogo</h2>
+        <form [formGroup]="form" (ngSubmit)="salvarEdicao()">
+          <label>Nome do jogo
+            <input formControlName="nome" placeholder="Ex.: Hollow Knight">
+          </label>
+
+          <div class="row">
+            <label>Status
+              <select formControlName="status">
+                <option value="pendente">Pendente</option>
+                <option value="jogando">Jogando</option>
+                <option value="finalizado">Finalizado</option>
+              </select>
+            </label>
+
+            <fieldset>
+              <legend>Nota: {{ form.controls.estrelas.value }}</legend>
+              <div class="rating">
+                @for (star of estrelas; track star) {
+                  <button type="button" [attr.aria-label]="'Definir ' + star + ' estrelas'" (click)="definirEstrelas(star, $event)">
+                    <span [class]="estadoEstrela(form.controls.estrelas.value, star)">★</span>
+                  </button>
+                }
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="campo-capa">
+            <label>Capa do jogo
+              <input type="file" accept="image/*" (change)="selecionarArquivo($event)">
+            </label>
+            <label>ou use uma URL
+              <input type="url" formControlName="imagem" placeholder="https://...">
+            </label>
+            @if (form.controls.imagem.value) { <img class="capa-preview" [src]="form.controls.imagem.value" alt="Prévia da capa"> }
+          </div>
+
+          <div class="row">
+            <label>Data inicial
+              <input type="date" formControlName="dataInicial">
+            </label>
+            <label>Data final
+              <input type="date" formControlName="dataFinal">
+            </label>
+          </div>
+
+          <div class="checks">
+            <label><input type="checkbox" formControlName="favorito"> Favorito</label>
+            <label><input type="checkbox" formControlName="wishlist"> Wishlist</label>
+          </div>
+
+          <div class="dialog-actions">
+            <button type="button" class="ghost" (click)="fecharModal()">Cancelar</button>
+            <button type="submit" class="primary">Salvar alterações</button>
+          </div>
+        </form>
+      }
+    </section>
+  }
+</main>

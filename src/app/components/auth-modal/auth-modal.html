@@ -1,0 +1,52 @@
+@if (auth.modalAberto()) {
+  <div class="backdrop" (click)="auth.fecharModal()" aria-hidden="true"></div>
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <button class="close" type="button" (click)="auth.fecharModal()" aria-label="Fechar acesso">×</button>
+    <p class="eyebrow">Conta Gamodan</p>
+    <h2 id="auth-title">{{ auth.modo() === 'entrar' ? 'Entre na sua conta' : 'Crie sua conta' }}</h2>
+    <p class="copy">Cada login mantém lista própria. Seus jogos ficam separados de outras contas.</p>
+    <div class="tabs" role="tablist" aria-label="Acesso">
+      <button type="button" role="tab" [attr.aria-selected]="auth.modo() === 'entrar'" [class.active]="auth.modo() === 'entrar'" (click)="mudarModo('entrar')">Entrar</button>
+      <button type="button" role="tab" [attr.aria-selected]="auth.modo() === 'criar'" [class.active]="auth.modo() === 'criar'" (click)="mudarModo('criar')">Criar conta</button>
+    </div>
+    @if (auth.modo() === 'entrar') {
+      <form [formGroup]="loginForm" (ngSubmit)="entrar()">
+        <label>E-mail<input type="email" formControlName="email" autocomplete="email" [attr.aria-invalid]="erro('login', 'email')" placeholder="voce@exemplo.com"><small>{{ erro('login', 'email') ? 'Informe e-mail válido.' : '' }}</small></label>
+        <label>Senha
+          <span class="campo-senha">
+            <input [type]="mostrarSenhaLogin() ? 'text' : 'password'" formControlName="senha" autocomplete="current-password" [attr.aria-invalid]="erro('login', 'senha')" placeholder="Sua senha">
+            <button type="button" class="olho" (click)="alternarSenha('login')" [attr.aria-label]="mostrarSenhaLogin() ? 'Ocultar senha' : 'Mostrar senha'"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M12 5c5 0 9 4.5 10 7-1 2.5-5 7-10 7S3 14.5 2 12c1-2.5 5-7 10-7zm0 3a4 4 0 100 8 4 4 0 000-8z" fill="currentColor"/></svg></button>
+          </span>
+          <small>{{ erro('login', 'senha') ? 'Informe sua senha.' : '' }}</small>
+        </label>
+        @if (erroAcesso) { <p class="access-error" role="alert">Não foi possível entrar. Confira seus dados.</p> }
+        <div class="actions"><button type="button" class="admin-link" (click)="irAdmin()">Entrar como administrador</button><span class="actions-fim"><button type="button" class="secondary" (click)="auth.fecharModal()">Cancelar</button><button type="submit">Entrar</button></span></div>
+      </form>
+    } @else {
+      <form [formGroup]="cadastroForm" (ngSubmit)="cadastrar()">
+        <div class="campo-foto">
+          <label>Foto de perfil (opcional)<input type="file" accept="image/*" (change)="selecionarFoto($event)"></label>
+          @if (fotoCadastro()) { <img class="foto-preview" [src]="fotoCadastro()" alt="Prévia da foto de perfil"> }
+        </div>
+        <label>Nome<input formControlName="nome" autocomplete="name" [attr.aria-invalid]="erro('cadastro', 'nome')" placeholder="Seu nome"><small>{{ erro('cadastro', 'nome') ? 'Informe nome com ao menos 2 caracteres.' : '' }}</small></label>
+        <label>E-mail<input type="email" formControlName="email" autocomplete="email" [attr.aria-invalid]="erro('cadastro', 'email')" placeholder="voce@exemplo.com"><small>{{ erro('cadastro', 'email') ? 'Informe e-mail válido.' : '' }}</small></label>
+        <label>Senha
+          <span class="campo-senha">
+            <input [type]="mostrarSenhaCadastro() ? 'text' : 'password'" formControlName="senha" autocomplete="new-password" [attr.aria-invalid]="erro('cadastro', 'senha')" placeholder="Crie uma senha">
+            <button type="button" class="olho" (click)="alternarSenha('cadastro')" [attr.aria-label]="mostrarSenhaCadastro() ? 'Ocultar senha' : 'Mostrar senha'"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M12 5c5 0 9 4.5 10 7-1 2.5-5 7-10 7S3 14.5 2 12c1-2.5 5-7 10-7zm0 3a4 4 0 100 8 4 4 0 000-8z" fill="currentColor"/></svg></button>
+          </span>
+          <small>{{ erro('cadastro', 'senha') ? 'Informe uma senha.' : '' }}</small>
+        </label>
+        <label>Confirmar senha
+          <span class="campo-senha">
+            <input [type]="mostrarConfirmacao() ? 'text' : 'password'" formControlName="confirmar" autocomplete="new-password" [attr.aria-invalid]="erro('cadastro', 'confirmar')" placeholder="Repita a senha">
+            <button type="button" class="olho" (click)="alternarSenha('confirmar')" [attr.aria-label]="mostrarConfirmacao() ? 'Ocultar senha' : 'Mostrar senha'"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M12 5c5 0 9 4.5 10 7-1 2.5-5 7-10 7S3 14.5 2 12c1-2.5 5-7 10-7zm0 3a4 4 0 100 8 4 4 0 000-8z" fill="currentColor"/></svg></button>
+          </span>
+          <small>{{ erro('cadastro', 'confirmar') ? 'As senhas não coincidem.' : '' }}</small>
+        </label>
+         @if (erroAcesso) { <p class="access-error" role="alert">Não foi possível criar conta. Confira seus dados.</p> }
+         <div class="actions"><button type="button" class="secondary" (click)="auth.fecharModal()">Cancelar</button><button type="submit">Criar conta</button></div>
+      </form>
+    }
+  </section>
+}

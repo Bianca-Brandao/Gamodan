@@ -1,90 +1,71 @@
-import { effect, Injectable, inject, signal } from '@angular/core';
+import { Injectable, effect, inject, signal } from '@angular/core';
 import { Game } from '../models/game.model';
 import { AuthService } from './auth';
 
 @Injectable({ providedIn: 'root' })
 export class GameService {
-  private readonly _games = signal<Game[]>([]);
+  private readonly auth = inject(AuthService);
+  private readonly state = signal<Game[]>([]);
   private nextId = 1;
-  private readonly authService = inject(AuthService);
-  readonly games = this._games.asReadonly();
+  readonly games = this.state.asReadonly();
 
   constructor() {
-    effect(
-      () => {
-        const usuario = this.authService.usuario();
-
-        if (!usuario) {
-          this._games.set([]);
-          this.nextId = 1;
-          return;
-        }
-
-        this.carregarPorUsuario(usuario.email);
-      },
-      { allowSignalWrites: true }
-    );
+    effect(() => this.load(this.auth.usuario()));
   }
 
-  addGame(game: Omit<Game, 'id'>) {
-    const novo: Game = { ...game, id: this.nextId++ };
-    this._games.update(lista => {
-      const atualizado = [...lista, novo];
-      this.salvarEstado(atualizado);
-      return atualizado;
-    });
+  addGame(game: Omit<Game, 'id'>): void {
+    const games = [...this.state(), { ...game, id: this.nextId++ }];
+    this.state.set(games);
+    this.save(games);
   }
 
-  toggleFavorito(id: number) {
-    this._games.update(lista => {
-      const atualizado = lista.map(g => g.id === id ? { ...g, favorito: !g.favorito } : g);
-      this.salvarEstado(atualizado);
-      return atualizado;
-    });
+  updateGame(id: number, changes: Omit<Game, 'id'>): void {
+    const games = this.state().map((game) => (game.id === id ? { ...changes, id } : game));
+    this.state.set(games);
+    this.save(games);
   }
 
-  setStatus(id: number, status: Game['status']) {
-    this._games.update(lista => {
-      const atualizado = lista.map(g => g.id === id ? { ...g, status } : g);
-      this.salvarEstado(atualizado);
-      return atualizado;
-    });
+  removeGame(id: number): void {
+    const games = this.state().filter((game) => game.id !== id);
+    this.state.set(games);
+    this.save(games);
   }
 
-  private carregarPorUsuario(email: string) {
-    if (typeof window === 'undefined') {
-      this._games.set([]);
+  toggleFavorito(id: number): void {
+    const games = this.state().map((game) => game.id === id ? { ...game, favorito: !game.favorito } : game);
+    this.state.set(games);
+    this.save(games);
+  }
+
+  setStatus(id: number, status: Game['status']): void {
+    const games = this.state().map((game) => game.id === id ? { ...game, status } : game);
+    this.state.set(games);
+    this.save(games);
+  }
+
+  private load(user: { email: string } | null): void {
+    if (!user || typeof localStorage === 'undefined') {
+      this.state.set([]);
       this.nextId = 1;
       return;
     }
-
-    const storageKey = this.authService.getStorageKeyForUser(email);
-    const bruto = window.localStorage.getItem(storageKey);
-
-    if (!bruto) {
-      this._games.set([]);
-      this.nextId = 1;
-      return;
-    }
-
     try {
-      const estado = JSON.parse(bruto) as { nextId: number; games: Game[] };
-      this._games.set(estado.games ?? []);
-      this.nextId = estado.nextId ?? (estado.games?.length ?? 0) + 1;
+      const raw = localStorage.getItem(this.auth.getStorageKeyForUser(user.email));
+      const saved = raw ? JSON.parse(raw) as { games?: Game[]; nextId?: number } : null;
+      const games = Array.isArray(saved?.games) ? saved.games : [];
+      this.state.set(games);
+      const nextId = saved?.nextId;
+      this.nextId = typeof nextId === 'number' && Number.isInteger(nextId) && nextId > 0 ? nextId : Math.max(0, ...games.map((game) => game.id)) + 1;
     } catch {
-      this._games.set([]);
+      this.state.set([]);
       this.nextId = 1;
     }
   }
 
-  private salvarEstado(games: Game[]) {
-    const usuario = this.authService.usuario();
-
-    if (!usuario || typeof window === 'undefined') {
-      return;
+  private save(games: Game[]): void {
+    const user = this.auth.usuario();
+    if (user && typeof localStorage !== 'undefined') {
+      localStorage.setItem(this.auth.getStorageKeyForUser(user.email), JSON.stringify({ games, nextId: this.nextId }));
     }
-
-    const storageKey = this.authService.getStorageKeyForUser(usuario.email);
-    window.localStorage.setItem(storageKey, JSON.stringify({ nextId: this.nextId, games }));
   }
 }

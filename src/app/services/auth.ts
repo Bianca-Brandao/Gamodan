@@ -2,242 +2,160 @@ import { Injectable, computed, signal } from '@angular/core';
 
 export type AuthMode = 'entrar' | 'criar';
 
-type AuthCredentials = {
-  nome?: string;
-  email: string;
-  senha: string;
-};
-
-type AuthSession = {
+export interface AuthUser {
   nome: string;
   email: string;
   admin: boolean;
-};
+  foto?: string;
+}
 
-const SESSION_KEY = 'gamodan-auth';
-const LEGACY_LOGADO_KEY = 'logado';
-const ADMIN_EMAIL = 'admin@gamodan.com';
+export interface AuthCredentials {
+  nome?: string;
+  email: string;
+  senha: string;
+  foto?: string;
+}
+
+interface StoredUser {
+  nome: string;
+  email: string;
+  senha: string;
+  foto?: string;
+}
+
+const SESSION_KEY = 'gamodan-auth-user';
+const LEGACY_SESSION_KEY = 'gamodan-auth';
+const USERS_KEY = 'gamodan-users';
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export const MEMBER_EMAILS = [
+  'analuiza.rochacoelho09@gmail.com',
+  'bianca.brandao.bbs@gmail.com',
+  'estelanunes889@gmail.com',
+  'kethyncris123@gmail.com',
+  'liviamendonca123456@gmail.com',
+  'martinsmarcelli06@gmail.com',
+  'mariaeduarda19@gmail.com',
+  'maryannemqs@gmail.com',
+];
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly modalAbertoState = signal(false);
-  private readonly modoState = signal<AuthMode>('entrar');
-  private readonly sessionState = signal<AuthSession | null>(this.carregarSessao());
+  private readonly sessionState = signal<AuthUser | null>(this.loadUser());
+  private readonly modalState = signal(false);
+  private readonly modeState = signal<AuthMode>('entrar');
 
-  readonly modalAberto = this.modalAbertoState.asReadonly();
-  readonly modo = this.modoState.asReadonly();
-  readonly autenticado = computed(() => this.sessionState() !== null);
+  readonly usuario = this.sessionState.asReadonly();
+  readonly modalAberto = this.modalState.asReadonly();
+  readonly modo = this.modeState.asReadonly();
+  readonly autenticado = computed(() => this.usuario() !== null);
   readonly isLogado = this.autenticado;
-  readonly admin = computed(() => this.sessionState()?.admin ?? false);
-  readonly usuario = computed(() => this.sessionState());
+  readonly admin = computed(() => this.usuario()?.admin ?? false);
 
-  abrirModal(modo: AuthMode): void {
-    this.modoState.set(modo);
-    this.modalAbertoState.set(true);
+  abrirModal(modo: AuthMode = 'entrar'): void {
+    this.modeState.set(modo);
+    this.modalState.set(true);
   }
 
   fecharModal(): void {
-    this.modalAbertoState.set(false);
+    this.modalState.set(false);
   }
 
-  login(credenciais: AuthCredentials | string, senha?: string): boolean {
-    const dados = this.normalizarCredenciais(credenciais, senha);
+  login(credentials: AuthCredentials): boolean {
+    const email = credentials.email.trim().toLowerCase();
+    if (!EMAIL_PATTERN.test(email) || !credentials.senha) return false;
 
-    if (!dados) {
-      return false;
-    }
+    const record = this.loadUsers().find((user) => user.email === email);
+    if (!record || record.senha !== credentials.senha) return false;
 
-    const email = this.normalizarEmail(dados.email);
-    const admin = this.ehEmailAdmin(email);
-    const nome = dados.nome?.trim() || this.extrairNome(email) || (admin ? 'Administrador' : 'Usuário');
-
-    this.salvarSessao({
-      nome,
-      email,
-      admin,
-    });
-
+    const user: AuthUser = { nome: record.nome, email, admin: MEMBER_EMAILS.includes(email) };
+    if (record.foto) user.foto = record.foto;
+    this.sessionState.set(user);
+    this.saveUser(user);
     this.fecharModal();
     return true;
   }
 
-  register(dados: AuthCredentials): boolean {
-    return this.login(dados);
+  register(credentials: AuthCredentials): boolean {
+    const email = credentials.email.trim().toLowerCase();
+    if (!EMAIL_PATTERN.test(email) || !credentials.senha.trim()) return false;
+
+    const users = this.loadUsers();
+    if (users.some((user) => user.email === email)) return false;
+
+    const record: StoredUser = {
+      nome: credentials.nome?.trim() || email.split('@')[0],
+      email,
+      senha: credentials.senha,
+    };
+    if (credentials.foto) record.foto = credentials.foto;
+
+    try {
+      localStorage.setItem(USERS_KEY, JSON.stringify([...users, record]));
+    } catch {
+      return false;
+    }
+    return this.login({ ...credentials, email });
   }
 
   logout(): void {
-    if (this.temStorage()) {
-      localStorage.removeItem(SESSION_KEY);
-      localStorage.removeItem(LEGACY_LOGADO_KEY);
-    }
-
     this.sessionState.set(null);
+    if (this.hasStorage()) { localStorage.removeItem(SESSION_KEY); localStorage.removeItem(LEGACY_SESSION_KEY); }
     this.fecharModal();
   }
 
-  private normalizarCredenciais(credenciais: AuthCredentials | string, senha?: string): AuthCredentials | null {
-    if (typeof credenciais === 'string') {
-      if (!senha) {
-        return null;
+  atualizarFoto(foto: string): void {
+    const atual = this.sessionState();
+    if (!atual) return;
+    const updated: AuthUser = { ...atual, foto };
+    this.sessionState.set(updated);
+    this.saveUser(updated);
+
+    const users = this.loadUsers().map((user) => (user.email === updated.email ? { ...user, foto } : user));
+    if (this.hasStorage()) localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  }
+
+  getStorageKeyForUser(email: string): string {
+    return `gamodan-games:${email.trim().toLowerCase()}`;
+  }
+
+  private loadUser(): AuthUser | null {
+    if (!this.hasStorage()) return null;
+    const raw = localStorage.getItem(SESSION_KEY) ?? localStorage.getItem(LEGACY_SESSION_KEY);
+    if (!raw) return null;
+    try {
+      const user = JSON.parse(raw) as Partial<AuthUser>;
+      const email = typeof user.email === 'string' ? user.email.trim().toLowerCase() : '';
+      if (typeof user.nome === 'string' && user.nome.trim() && EMAIL_PATTERN.test(email)) {
+        const normalized: AuthUser = { nome: user.nome.trim(), email, admin: MEMBER_EMAILS.includes(email) };
+        if (typeof user.foto === 'string' && user.foto) normalized.foto = user.foto;
+        this.saveUser(normalized);
+        return normalized;
       }
-
-      return {
-        email: credenciais,
-        senha,
-      };
-    }
-
-    if (!credenciais.email || !credenciais.senha) {
-      return null;
-    }
-
-    return credenciais;
-  }
-
-  private normalizarEmail(email: string): string {
-    return email.trim().toLowerCase();
-  }
-
-  private ehEmailAdmin(email: string): boolean {
-    return email === ADMIN_EMAIL;
-  }
-
-  private extrairNome(email: string): string {
-    const nome = email.split('@')[0]?.trim();
-    return nome || 'Usuário';
-  }
-
-  private salvarSessao(sessao: AuthSession): void {
-    this.sessionState.set(sessao);
-
-    if (!this.temStorage()) {
-      return;
-    }
-
-    localStorage.setItem(SESSION_KEY, JSON.stringify(sessao));
-    localStorage.setItem(LEGACY_LOGADO_KEY, 'true');
-  }
-
-  private carregarSessao(): AuthSession | null {
-    if (!this.temStorage()) {
-      return null;
-    }
-
-    const sessaoSalva = localStorage.getItem(SESSION_KEY);
-    if (sessaoSalva) {
-      try {
-        const sessao = JSON.parse(sessaoSalva) as Partial<AuthSession>;
-        if (typeof sessao.nome === 'string' && typeof sessao.email === 'string') {
-          return {
-            nome: sessao.nome,
-            email: sessao.email,
-            admin: Boolean(sessao.admin),
-          };
-        }
-      } catch {
-        localStorage.removeItem(SESSION_KEY);
-      }
-    }
-
-    if (localStorage.getItem(LEGACY_LOGADO_KEY) === 'true') {
-      return {
-        nome: 'Usuário',
-        email: '',
-        admin: false,
-      };
-    }
-
+    } catch {}
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(LEGACY_SESSION_KEY);
     return null;
   }
 
-  private temStorage(): boolean {
-    return typeof localStorage !== 'undefined';
-  }
-}
-
-export { AuthService as Auth };
-export interface AuthUser {
-  nome: string;
-  email: string;
-}
-
-interface LoginPayload {
-  nome: string;
-  email: string;
-  senha: string;
-}
-
-@Injectable({ providedIn: 'root' })
-export class AuthService {
-  private readonly storageKey = 'gamodan-auth-user';
-  private readonly usuarioInicial = this.carregarUsuario();
-
-  readonly usuario = signal<AuthUser | null>(this.usuarioInicial);
-  readonly modalAberto = signal(false);
-  readonly modo = signal<AuthMode>('entrar');
-  readonly autenticado = computed(() => this.usuario() !== null);
-
-  abrirModal(modo: AuthMode = 'entrar') {
-    this.modo.set(modo);
-    this.modalAberto.set(true);
-  }
-
-  fecharModal() {
-    this.modalAberto.set(false);
-  }
-
-  login(payload: LoginPayload) {
-    const usuario = { nome: payload.nome, email: payload.email };
-    this.usuario.set(usuario);
-    this.salvarUsuario(usuario);
-    this.fecharModal();
-  }
-
-  register(payload: LoginPayload) {
-    this.login(payload);
-  }
-
-  logout() {
-    this.usuario.set(null);
-    this.removerUsuario();
-    this.fecharModal();
-  }
-
-  getStorageKeyForUser(email: string) {
-    return `${this.storageKey}:${email}`;
-  }
-
-  private carregarUsuario(): AuthUser | null {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-
-    const bruto = window.localStorage.getItem(this.storageKey);
-
-    if (!bruto) {
-      return null;
-    }
-
+  private loadUsers(): StoredUser[] {
+    if (!this.hasStorage()) return [];
     try {
-      return JSON.parse(bruto) as AuthUser;
+      const raw = localStorage.getItem(USERS_KEY);
+      const parsed = raw ? JSON.parse(raw) as StoredUser[] : [];
+      return Array.isArray(parsed)
+        ? parsed.filter((user) => typeof user.email === 'string' && typeof user.senha === 'string')
+        : [];
     } catch {
-      return null;
+      return [];
     }
   }
 
-  private salvarUsuario(usuario: AuthUser) {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    window.localStorage.setItem(this.storageKey, JSON.stringify(usuario));
+  private saveUser(user: AuthUser): void {
+    if (this.hasStorage()) localStorage.setItem(SESSION_KEY, JSON.stringify(user));
   }
 
-  private removerUsuario() {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    window.localStorage.removeItem(this.storageKey);
+  private hasStorage(): boolean {
+    return typeof localStorage !== 'undefined';
   }
 }
